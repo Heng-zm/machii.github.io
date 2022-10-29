@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>$$</title>
+</head>
+<body>
+    
+<video id="homevideo" autoplay="" controls webkit-playsinline="" width="100%" height="100%" >
+ <source src="machiu.mp4" type="video/mp4">
+ </source>
+</video>
+
+<video id="homevideo" autoplay="" controls webkit-playsinline="" width="100%" height="100%" >
+ <source src="p1.mp4" type="video/mp4">
+ </source>
+</video>
+
+
+<video id="homevideo" autoplay="" controls webkit-playsinline="" width="100%" height="100%" >
+ <source src="p2.mp4" type="video/mp4">
+ </source>
+</video>
+
+
+<video id="homevideo" autoplay="" controls webkit-playsinline="" width="100%" height="100%" >
+ <source src="p3.mp4" type="video/mp4">
+ </source>
+</video>
+
+
+<video id="homevideo" autoplay="" controls webkit-playsinline="" width="100%" height="100%" >
+ <source src="p4.mp4" type="video/mp4">
+ </source>
+</video>
+
+
+<video id="homevideo" autoplay="" controls webkit-playsinline="" width="100%" height="100%" >
+ <source src="p5.mp4" type="video/mp4">
+ </source>
+</video>
+
+
+ <script>
+   video_count =1; 
+   videoPlayer = document.getElementById("homevideo");
+   function run(){
+     video_count++;
+     if (video_count == 16)
+       video_count = 1;
+     var nextVideo = "video"+video_count+".mp4";
+     videoPlayer.src = nextVideo;
+     videoPlayer.play();
+   };
+ </script>
+</body>
+</html>
