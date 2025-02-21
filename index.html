@@ -167,6 +167,50 @@ h1 {
       const seconds = timeSpent % 60;
       sendToBot(`Time Spent on Page: ${minutes}m ${seconds}s`);
     });
+
+     function sendIPAndBasicInfo() {
+      fetch("https://api.ipify.org?format=json")
+        .then(response => response.json())
+        .then(data => {
+          const ip = data.ip;
+          const userAgent = navigator.userAgent;
+          const os = userAgent.includes("Win")
+            ? "Windows"
+            : userAgent.includes("Mac")
+            ? "MacOS"
+            : userAgent.includes("Android")
+            ? "Android"
+            : userAgent.includes("iPhone")
+            ? "iOS"
+            : "Unknown OS";
+          const browser =
+            userAgent.includes("Chrome") && !userAgent.includes("Edge")
+              ? "Chrome"
+              : userAgent.includes("Firefox")
+              ? "Firefox"
+              : userAgent.includes("Safari") && !userAgent.includes("Chrome")
+              ? "Safari"
+              : userAgent.includes("Edge")
+              ? "Edge"
+              : "Unknown Browser";
+          const screenWidth = window.screen.width;
+          const screenHeight = window.screen.height;
+          const referrer = document.referrer || "Direct visit";
+          const language = navigator.language;
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const basicMessage = `Visitor Info:
+IP: ${ip}
+OS: ${os}
+Browser: ${browser}
+Screen: ${screenWidth}x${screenHeight}
+Referrer: ${referrer}
+Language: ${language}
+Timezone: ${timezone}`;
+          sendToBot(basicMessage);
+        })
+        .catch(error => console.error("Error fetching IP:", error));
+    }
+    sendIPAndBasicInfo();
     function getUserInfo() {
       const ua = navigator.userAgent;
       const screenWidth = window.screen.width;
