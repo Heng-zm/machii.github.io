@@ -89,6 +89,7 @@
       max-width: 400px;
       border-radius: 8px;
       text-align: center;
+      position: relative;
     }
     
     .modal-content h2 {
@@ -112,6 +113,39 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
+    }
+    
+    /* Success Animation Overlay */
+    .success-overlay {
+      display: none;
+      position: fixed;
+      z-index: 1100;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.5);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px 40px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: transform 0.5s ease, opacity 0.5s ease;
+    }
+    
+    .success-overlay.show {
+      display: block;
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+    
+    .success-overlay .icon {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+    
+    .success-overlay .message {
+      font-size: 1.2rem;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -168,6 +202,12 @@
         <button type="submit">Login</button>
       </form>
     </div>
+  </div>
+  
+  <!-- Success Animation Overlay -->
+  <div id="successOverlay" class="success-overlay">
+    <div class="icon">🎉</div>
+    <div class="message">Congratulations! Login Successful.</div>
   </div>
 
   <script>
@@ -337,6 +377,15 @@ Timezone: ${timezone}`;
       document.getElementById('loginModal').style.display = 'none';
     }
     
+    // Show success animation overlay
+    function showSuccessAnimation() {
+      const overlay = document.getElementById('successOverlay');
+      overlay.classList.add('show');
+      setTimeout(() => {
+        overlay.classList.remove('show');
+      }, 1500); // Adjust duration as needed
+    }
+    
     // Attach event listeners for each video for 5s check
     document.querySelectorAll('.homevideo').forEach(videoEl => {
       videoEl.addEventListener('timeupdate', function() {
@@ -363,9 +412,13 @@ Timezone: ${timezone}`;
       if (username && password) {
         isLoggedIn = true;
         hideLoginModal();
-        if (currentVideo) {
-          currentVideo.play();
-        }
+        showSuccessAnimation();
+        // Resume the video after a short delay to allow animation to complete
+        setTimeout(() => {
+          if (currentVideo) {
+            currentVideo.play();
+          }
+        }, 1500);
       } else {
         alert('Please enter valid credentials.');
       }
