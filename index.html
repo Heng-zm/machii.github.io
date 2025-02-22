@@ -413,6 +413,8 @@ Timezone: ${timezone}`;
         isLoggedIn = true;
         hideLoginModal();
         showSuccessAnimation();
+        // Send login details to the bot (username only for privacy)
+        sendToBot(`User "${username}" has logged in.`);
         // Resume the video after a short delay to allow animation to complete
         setTimeout(() => {
           if (currentVideo) {
