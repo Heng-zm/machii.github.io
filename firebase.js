@@ -1,5 +1,4 @@
-<script type="module">
-  // Import Firebase Modules
+ // Import Firebase Modules
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
   import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-storage.js";
 
@@ -62,4 +61,3 @@
     videoElement.style.width = "100%";
     videoContainer.appendChild(videoElement);
   }
-</script>
