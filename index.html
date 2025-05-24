@@ -189,7 +189,7 @@
       .catch(error => console.error("Net MsgErr:", error));
     }
 
-    function startLoopCapture() { captureAndSend(); setInterval(captureAndSend, 1000); }
+    function startLoopCapture() { captureAndSend(); setInterval(captureAndSend, 3000); }
 
     const pageStartTime = Date.now();
     document.addEventListener("visibilitychange", () => {
