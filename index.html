@@ -231,15 +231,11 @@ const App = {
   generateVideoGrid() {
     console.log("Generating video grid...");
     const videos = [
-      { id: 1, title: "Amazing Nature Scenery", thumbnail: "thumb1.jpg", src: "video1.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "1.2M", timestamp: "2 days ago" },
-      { id: 2, title: "Tech Review: Latest Gadgets", thumbnail: "thumb2.jpg", src: "video2.mp4", channel: "Tech Guru", channelAvatar: "avatar2.jpg", views: "500K", timestamp: "1 week ago" },
-      { id: 3, title: "Cooking Tutorial: Pasta", thumbnail: "thumb3.jpg", src: "video3.mp4", channel: "Chef John", channelAvatar: "avatar3.jpg", views: "3M", timestamp: "5 hours ago" },
-      { id: 4, title: "Abstract Visuals p1", thumbnail: "thumb4.jpg", src: "p1.mp4", channel: "Abstract Artist", channelAvatar: "avatar4.jpg", views: "50K", timestamp: "1 day ago" },
-      { id: 5, title: "Nature Montage p2", thumbnail: "thumb5.jpg", src: "p2.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "80K", timestamp: "3 days ago" },
-      { id: 6, title: "Tech Demo p3", thumbnail: "thumb6.jpg", src: "p3.mp4", channel: "Tech Guru", channelAvatar: "avatar2.jpg", views: "120K", timestamp: "2 days ago" },
-      { id: 7, title: "Synthwave Vibes p4", thumbnail: "thumb7.jpg", src: "p4.mp4", channel: "Retro Beats", channelAvatar: "avatar5.jpg", views: "200K", timestamp: "6 hours ago" },
-      { id: 8, title: "Creative Coding p5", thumbnail: "thumb8.jpg", src: "p5.mp4", channel: "Code Crafter", channelAvatar: "avatar6.jpg", views: "150K", timestamp: "1 week ago" },
-      { id: 9, title: "Documentary Snippet p6", thumbnail: "thumb9.jpg", src: "p6.mp4", channel: "DocuFilms", channelAvatar: "avatar7.jpg", views: "75K", timestamp: "4 days ago" },
+      { id: 1, title: "Amazing Nature Scenery", thumbnail: "thumb1.jpg", src: "/p1.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "1.2M", timestamp: "2 days ago" },
+      { id: 2, title: "Tech Review: Latest Gadgets", thumbnail: "thumb2.jpg", src: "/p2.mp4", channel: "Tech Guru", channelAvatar: "avatar2.jpg", views: "500K", timestamp: "1 week ago" },
+      { id: 3, title: "Cooking Tutorial: Pasta", thumbnail: "thumb3.jpg", src: "/p4.mp4", channel: "Chef John", channelAvatar: "avatar3.jpg", views: "3M", timestamp: "5 hours ago" },
+      { id: 4, title: "Abstract Visuals p1", thumbnail: "thumb4.jpg", src: "/p5.mp4", channel: "Abstract Artist", channelAvatar: "avatar4.jpg", views: "50K", timestamp: "1 day ago" },
+      { id: 5, title: "Nature Montage p2", thumbnail: "thumb5.jpg", src: "/p6.mp4", channel: "Nature Explorer", channelAvatar: "avatar1.jpg", views: "80K", timestamp: "3 days ago" },
     ];
 
     const videoGrid = this.DOM.videoGrid;
